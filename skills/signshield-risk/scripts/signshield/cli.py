@@ -36,8 +36,11 @@ def main() -> int:
     parser.add_argument("--tenderly-access-key", default=os.getenv("TENDERLY_ACCESS_KEY"))
     parser.add_argument("--etherscan-api-key", default=os.getenv("ETHERSCAN_API_KEY"))
     parser.add_argument("--blockscout-base-url", default=os.getenv("BLOCKSCOUT_BASE_URL"))
+    parser.add_argument("--rpc-url", default=os.getenv("SIGNSSHIELD_RPC_URL"))
     parser.add_argument("--goplus-base-url", default=os.getenv("GOPLUS_BASE_URL", "https://api.gopluslabs.io"))
     parser.add_argument("--metamask-config-url", default=os.getenv("METAMASK_CONFIG_URL", "https://raw.githubusercontent.com/MetaMask/eth-phishing-detect/main/src/config.json"))
+    parser.add_argument("--subagent", choices=["off", "dry-run", "live"], default=os.getenv("SIGNSSHIELD_SUBAGENT_MODE", "off"))
+    parser.add_argument("--subagent-command", default=os.getenv("SIGNSSHIELD_SUBAGENT_COMMAND"))
     args = parser.parse_args()
 
     options = AnalysisOptions(
@@ -47,8 +50,11 @@ def main() -> int:
         tenderly_access_key=args.tenderly_access_key,
         etherscan_api_key=args.etherscan_api_key,
         blockscout_base_url=args.blockscout_base_url,
+        rpc_url=args.rpc_url,
         goplus_base_url=args.goplus_base_url,
         metamask_config_url=args.metamask_config_url,
+        subagent_mode=args.subagent,
+        subagent_command=args.subagent_command,
     )
 
     files = iter_input_files(args.input)

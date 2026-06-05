@@ -11,9 +11,15 @@ from .adapters import (
     TenderlySimulationAdapter,
 )
 from .decode import decode_calldata
+from .contract_bytecode_scanner import scan_contract_bytecode
+from .erc20_scoring import apply_erc20_token_profile_rules
 from .fixtures import ADDRESS_FIXTURES, TOKEN_FIXTURES
 from .scoring import recommended_action
-from .types import AnalysisOptions, CalldataResolver, ContractReputationAdapter, SimulationAdapter, ThreatIntelAdapter
+from .subagent_context_builder import build_subagent_context
+from .subagent_harness import apply_subagent_recommended_factors, run_subagent_harness
+from .token_metadata import TokenMetadataResolver
+from .token_security_normalizer import build_erc20_token_risk_profile
+from .types import AnalysisOptions, CalldataResolver, ContractReputationAdapter, SimulationAdapter, SubagentClient, ThreatIntelAdapter, TokenMetadataProvider
 from .utils import (
     DEAD_ADDRESSES,
     UNLIMITED_THRESHOLD,
@@ -50,6 +56,8 @@ def analyze_transaction(
     simulation_adapter: SimulationAdapter | None = None,
     contract_adapter: ContractReputationAdapter | None = None,
     threat_adapter: ThreatIntelAdapter | None = None,
+    token_metadata_provider: TokenMetadataProvider | None = None,
+    subagent_client: SubagentClient | None = None,
 ) -> dict[str, Any]:
     options = options or AnalysisOptions()
     defaults = build_default_adapters(options)
@@ -79,6 +87,22 @@ def analyze_transaction(
     contract_rep = contract_adapter.inspect(chain.chain_id, to_addr) if contract_adapter else {"status": "not_run", "facts": []}
     addresses = collect_addresses(from_addr, to_addr, decoded)
     threat_intel = threat_adapter.inspect(chain.chain_id, addresses, origin) if threat_adapter else {"status": "not_run", "matches": []}
+    erc20_token_address = erc20_token_target(category, to_addr)
+    token_metadata_resolver = token_metadata_provider or TokenMetadataResolver(options.rpc_url)
+    token_meta = token_metadata_resolver.metadata(chain.chain_id, erc20_token_address, contract_rep) if erc20_token_address else {}
+    bytecode_scan = scan_contract_bytecode(chain.chain_id, erc20_token_address, contract_rep) if erc20_token_address else {"status": "not_applicable", "signals": {}}
+    erc20_profile = (
+        build_erc20_token_risk_profile(
+            chain.chain_id,
+            erc20_token_address,
+            token_metadata=token_meta,
+            contract_reputation=contract_rep,
+            threat_intel=threat_intel,
+            bytecode_scan=bytecode_scan,
+        )
+        if erc20_token_address
+        else None
+    )
 
     if simulation.get("status") in {"not_run", "config_missing"}:
         limitations.append("No live transaction simulation was executed.")
@@ -91,6 +115,35 @@ def analyze_transaction(
     apply_contract_reputation_rules(contract_rep, factors)
     apply_threat_intel_rules(threat_intel, factors)
     apply_simulation_rules(simulation, factors)
+    apply_erc20_token_profile_rules(erc20_profile, factors)
+
+    intent = {"category": category, "description": intent_description, "decodedFunction": decoded.get("function")}
+    chain_evidence = {"raw": chain.raw, "chainId": chain.chain_id, "caip2": chain.caip2, "name": chain.name}
+    if erc20_profile is not None:
+        subagent_context = build_subagent_context(
+            chain=chain_evidence,
+            token_address=erc20_token_address,
+            origin=origin,
+            intent=intent,
+            decoded=decoded,
+            token_profile=erc20_profile,
+            bytecode_scan=bytecode_scan,
+            contract_reputation=contract_rep,
+            threat_intel=threat_intel,
+            simulation=simulation,
+            deterministic_risk_factors=factors,
+        )
+        subagent_result = run_subagent_harness(
+            options.subagent_mode,
+            subagent_context,
+            command=options.subagent_command,
+            client=subagent_client,
+        )
+        erc20_profile["subagentAssessments"] = subagent_result.get("assessments", [])
+        erc20_profile["subagent"] = subagent_result
+        apply_subagent_recommended_factors(subagent_result, factors)
+        if subagent_result.get("limitations"):
+            limitations.extend(subagent_result["limitations"])
 
     score = min(sum(int(factor["score"]) for factor in factors), 100)
     level = risk_level(score)
@@ -107,19 +160,16 @@ def analyze_transaction(
             "recommendedAction": action,
         },
         "summary": build_summary(category, level, impacts, factors),
-        "intent": {
-            "category": category,
-            "description": intent_description,
-            "decodedFunction": decoded.get("function"),
-        },
+        "intent": intent,
         "assetImpact": impacts,
         "riskFactors": factors,
         "evidence": {
-            "chain": {"raw": chain.raw, "chainId": chain.chain_id, "caip2": chain.caip2, "name": chain.name},
+            "chain": chain_evidence,
             "calldata": decoded,
             "simulation": simulation,
             "contractReputation": contract_rep,
             "threatIntel": threat_intel,
+            "erc20TokenRisk": erc20_profile,
             "limitations": limitations,
         },
         "recommendation": build_recommendation(action, category, factors),
@@ -174,6 +224,12 @@ def token_metadata(chain_id: int | None, address: str | None) -> dict[str, Any]:
     if fixture:
         return {"chainId": f"eip155:{chain_id}", "address": address, **fixture}
     return {"chainId": f"eip155:{chain_id}", "address": address, "symbol": "UNKNOWN_ERC20", "decimals": 18}
+
+
+def erc20_token_target(category: str, to_addr: str | None) -> str | None:
+    if category in {"ERC20_APPROVAL", "TOKEN_TRANSFER"}:
+        return to_addr
+    return None
 
 
 def collect_addresses(*values: Any) -> list[str]:

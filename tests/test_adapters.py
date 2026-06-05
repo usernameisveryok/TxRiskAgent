@@ -74,7 +74,28 @@ def test_contract_reputation_parses_etherscan_and_blockscout() -> None:
     result = adapter.inspect(1, "0x0000000000000000000000000000000000000001")
     assert result["etherscan"]["sourceVerified"] is True
     assert result["etherscan"]["proxy"] is True
+    assert result["etherscan"]["implementationVerified"] is True
     assert result["blockscout"]["sourceVerified"] is True
+
+
+def test_contract_reputation_recurses_into_unverified_implementation() -> None:
+    class SequentialClient(FakeClient):
+        def __init__(self) -> None:
+            super().__init__({})
+            self.etherscan_calls = 0
+
+        def get_json(self, url: str, *, params: dict[str, Any] | None = None, headers: dict[str, str] | None = None) -> dict[str, Any]:
+            if "etherscan" in url:
+                self.etherscan_calls += 1
+                if self.etherscan_calls == 1:
+                    return {"status": "1", "result": [{"SourceCode": "proxy", "ContractName": "Proxy", "Proxy": "1", "Implementation": "0x00000000000000000000000000000000000000ab"}]}
+                return {"status": "1", "result": [{"SourceCode": "", "ContractName": "Impl", "Proxy": "0", "Implementation": ""}]}
+            return {}
+
+    adapter = CompositeContractReputationAdapter("key", None, client=SequentialClient())
+    result = adapter.inspect(1, "0x0000000000000000000000000000000000000001")
+    assert result["etherscan"]["implementation"] == "0x00000000000000000000000000000000000000ab"
+    assert result["etherscan"]["implementationVerified"] is False
 
 
 def test_threat_intel_parses_goplus_and_metamask() -> None:

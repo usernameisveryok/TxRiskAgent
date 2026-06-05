@@ -39,6 +39,41 @@ TOKEN_FIXTURES = {
         "name": "Synthetic Base Stablecoin Fixture",
         "decimals": 6,
     },
+    (1, "0x1000000000000000000000000000000000000101"): {
+        "symbol": "LAB-HIDDEN",
+        "name": "Synthetic Hidden Owner Token",
+        "decimals": 18,
+    },
+    (1, "0x1000000000000000000000000000000000000102"): {
+        "symbol": "LAB-MINT",
+        "name": "Synthetic Mintable Owner Token",
+        "decimals": 18,
+    },
+    (1, "0x1000000000000000000000000000000000000103"): {
+        "symbol": "LAB-TAX",
+        "name": "Synthetic High Tax Token",
+        "decimals": 18,
+    },
+    (1, "0x1000000000000000000000000000000000000104"): {
+        "symbol": "LAB-SELL",
+        "name": "Synthetic Cannot Sell All Token",
+        "decimals": 18,
+    },
+    (1, "0x1000000000000000000000000000000000000105"): {
+        "symbol": "LAB-HONEY",
+        "name": "Synthetic Blacklist Honeypot Token",
+        "decimals": 18,
+    },
+    (1, "0x1000000000000000000000000000000000000106"): {
+        "symbol": "LAB-PROXY",
+        "name": "Synthetic Unverified Proxy Token",
+        "decimals": 18,
+    },
+    (1, "0x1000000000000000000000000000000000000107"): {
+        "symbol": "LAB-LP",
+        "name": "Synthetic LP Unlocked Token",
+        "decimals": 18,
+    },
 }
 
 ADDRESS_FIXTURES = {
@@ -92,4 +127,69 @@ DOMAIN_FIXTURES = {
         "risk": "local_demo",
         "severity": "low",
     }
+}
+
+TOKEN_RISK_FIXTURES = {
+    (1, "0x1000000000000000000000000000000000000001"): {
+        "tokenSecurity": {"sourceVerified": True, "ownershipRenounced": False, "mintable": True, "taxMutable": True},
+        "marketControls": {"buyTaxBps": 0, "sellTaxBps": 0, "canBuy": True, "canSell": True, "cannotSellAll": False},
+        "holderAndLiquidity": {"top10HolderRatio": 0.42, "lpLockedRatio": 0.8, "topLpHolderRatio": 0.2},
+        "deployment": {"ageDays": 3, "deployer": "0x5000000000000000000000000000000000000001", "owner": "0x5000000000000000000000000000000000000002"},
+    },
+    (1, "0x1000000000000000000000000000000000000002"): {
+        "tokenSecurity": {"sourceVerified": True, "ownershipRenounced": False, "hiddenOwner": True, "canRegainOwnership": True},
+        "marketControls": {"canBuy": True, "canSell": True, "cannotSellAll": False},
+    },
+    (1, "0x1000000000000000000000000000000000000003"): {
+        "tokenSecurity": {"sourceVerified": True, "ownershipRenounced": True},
+        "marketControls": {"canBuy": True, "canSell": True, "cannotSellAll": False},
+    },
+    (10, "0x1000000000000000000000000000000000000004"): {
+        "tokenSecurity": {"sourceVerified": False, "externalCallPresent": True},
+        "marketControls": {"canBuy": True, "canSell": True, "cannotSellAll": False},
+    },
+    (8453, "0x1000000000000000000000000000000000000007"): {
+        "tokenSecurity": {"sourceVerified": True, "isProxy": True, "implementationVerified": False, "ownershipRenounced": False},
+        "marketControls": {"buyTaxBps": 0, "sellTaxBps": 1200, "canBuy": True, "canSell": True, "cannotSellAll": False},
+        "holderAndLiquidity": {"lpLockedRatio": 0.1, "topLpHolderRatio": 0.82},
+    },
+    (1, "0x1000000000000000000000000000000000000101"): {
+        "tokenSecurity": {"sourceVerified": True, "ownershipRenounced": True, "hiddenOwner": True},
+        "marketControls": {"canBuy": True, "canSell": True, "cannotSellAll": False},
+    },
+    (1, "0x1000000000000000000000000000000000000102"): {
+        "tokenSecurity": {"sourceVerified": True, "ownershipRenounced": False, "mintable": True},
+        "marketControls": {"canBuy": True, "canSell": True, "cannotSellAll": False},
+    },
+    (1, "0x1000000000000000000000000000000000000103"): {
+        "tokenSecurity": {"sourceVerified": True, "ownershipRenounced": False, "taxMutable": True},
+        "marketControls": {"buyTaxBps": 300, "sellTaxBps": 1800, "canBuy": True, "canSell": True, "cannotSellAll": False},
+    },
+    (1, "0x1000000000000000000000000000000000000104"): {
+        "tokenSecurity": {"sourceVerified": True, "ownershipRenounced": False},
+        "marketControls": {"canBuy": True, "canSell": True, "cannotSellAll": True, "antiWhaleEnabled": True, "antiWhaleMutable": True},
+    },
+    (1, "0x1000000000000000000000000000000000000105"): {
+        "tokenSecurity": {"sourceVerified": False, "ownershipRenounced": False, "blacklistEnabled": True, "whitelistEnabled": True},
+        "marketControls": {"canBuy": True, "canSell": False, "cannotSellAll": True},
+    },
+    (1, "0x1000000000000000000000000000000000000106"): {
+        "tokenSecurity": {"sourceVerified": True, "isProxy": True, "implementationVerified": False, "ownershipRenounced": False},
+        "marketControls": {"canBuy": True, "canSell": True, "cannotSellAll": False},
+    },
+    (1, "0x1000000000000000000000000000000000000107"): {
+        "tokenSecurity": {"sourceVerified": True, "ownershipRenounced": True},
+        "marketControls": {"canBuy": True, "canSell": True, "cannotSellAll": False},
+        "holderAndLiquidity": {"majorHolderRatio": 0.62, "top10HolderRatio": 0.82, "lpLockedRatio": 0.05, "topLpHolderRatio": 0.91},
+    },
+}
+
+BYTECODE_FIXTURES = {
+    (1, "0x1000000000000000000000000000000000000101"): "0x600035f2fde38b",
+    (1, "0x1000000000000000000000000000000000000102"): "0x60003540c10f19",
+    (1, "0x1000000000000000000000000000000000000103"): "0x6000353a7b36f4",
+    (1, "0x1000000000000000000000000000000000000104"): "0x600035a2e62045ce4b2f7b",
+    (1, "0x1000000000000000000000000000000000000105"): "0x600035f9f92be4a8f9e2d0f1ff",
+    (1, "0x1000000000000000000000000000000000000106"): "0x600035f4",
+    (1, "0x1000000000000000000000000000000000000107"): "0x600035",
 }

@@ -53,9 +53,11 @@ class CompositeThreatIntelAdapter:
             return {"status": "error", "provider": "goplus", "error": str(exc), "matches": []}
         result = data.get("result") if isinstance(data.get("result"), dict) else {}
         matches = []
+        token_reports: dict[str, Any] = {}
         for address, token_report in result.items():
             if not isinstance(token_report, dict):
                 continue
+            token_reports[address.lower()] = token_report
             risk_flags = _goplus_risk_flags(token_report)
             if risk_flags:
                 matches.append(
@@ -67,7 +69,7 @@ class CompositeThreatIntelAdapter:
                         "flags": risk_flags,
                     }
                 )
-        return {"status": "ok", "provider": "goplus", "matches": matches, "rawStatus": data.get("code")}
+        return {"status": "ok", "provider": "goplus", "matches": matches, "tokenReports": token_reports, "rawStatus": data.get("code")}
 
     def _metamask_domain(self, origin: str | None) -> dict[str, Any]:
         host = _host(origin)

@@ -91,10 +91,79 @@
       "status": "not_run",
       "matches": []
     },
+    "erc20TokenRisk": {
+      "tokenSecurity": {
+        "sourceVerified": null,
+        "isProxy": null,
+        "implementationVerified": null,
+        "ownershipRenounced": null,
+        "hiddenOwner": null,
+        "canRegainOwnership": null,
+        "mintable": null,
+        "blacklistEnabled": null,
+        "whitelistEnabled": null,
+        "taxMutable": null,
+        "balanceMutable": null,
+        "withdrawFunction": null,
+        "selfdestructPresent": null,
+        "externalCallPresent": null,
+        "transferPausable": null,
+        "transferCooldown": null
+      },
+      "marketControls": {
+        "buyTaxBps": null,
+        "sellTaxBps": null,
+        "canBuy": null,
+        "canSell": null,
+        "cannotSellAll": null,
+        "antiWhaleEnabled": null,
+        "antiWhaleMutable": null
+      },
+      "holderAndLiquidity": {
+        "majorHolderRatio": null,
+        "top10HolderRatio": null,
+        "lpLockedRatio": null,
+        "topLpHolderRatio": null
+      },
+      "deployment": {
+        "deployedAt": null,
+        "ageDays": null,
+        "deployer": null,
+        "owner": null,
+        "dexPair": null
+      },
+      "metadata": {
+        "chainId": "eip155:56",
+        "address": "0x55d398326f99059ff775485246999027b3197955",
+        "symbol": "USDT",
+        "decimals": 18,
+        "sources": [
+          "local_fixture"
+        ],
+        "name": "Tether USD"
+      },
+      "bytecodeScan": {
+        "status": "not_available",
+        "source": null,
+        "signals": {}
+      },
+      "subagentAssessments": [],
+      "sources": [
+        "contract_reputation"
+      ],
+      "subagent": {
+        "status": "skipped",
+        "assessments": [],
+        "limitations": [
+          "Subagent mode is off."
+        ]
+      }
+    },
     "limitations": [
       "No live transaction simulation was executed.",
       "Live source verification, proxy, deployment age, or label data may be incomplete.",
-      "No live third-party threat intelligence was queried."
+      "No live third-party threat intelligence was queried.",
+      "Subagent mode is off."
     ]
   },
   "recommendation": "建议拒绝签名。spender 已命中恶意代理样例，继续授权可能导致代币被转走。"

@@ -22,8 +22,11 @@ class AnalysisOptions:
     tenderly_access_key: str | None = None
     etherscan_api_key: str | None = None
     blockscout_base_url: str | None = None
+    rpc_url: str | None = None
     goplus_base_url: str = "https://api.gopluslabs.io"
     metamask_config_url: str = "https://raw.githubusercontent.com/MetaMask/eth-phishing-detect/main/src/config.json"
+    subagent_mode: str = "off"
+    subagent_command: str | None = None
 
 
 class CalldataResolver(Protocol):
@@ -43,4 +46,14 @@ class ContractReputationAdapter(Protocol):
 
 class ThreatIntelAdapter(Protocol):
     def inspect(self, chain_id: int, addresses: list[str], origin: str | None) -> dict[str, Any]:
+        ...
+
+
+class TokenMetadataProvider(Protocol):
+    def metadata(self, chain_id: int, address: str | None, contract_reputation: dict[str, Any] | None = None) -> dict[str, Any]:
+        ...
+
+
+class SubagentClient(Protocol):
+    def assess(self, context: dict[str, Any]) -> dict[str, Any]:
         ...

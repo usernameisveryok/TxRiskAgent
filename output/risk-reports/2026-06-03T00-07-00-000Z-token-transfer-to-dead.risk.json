@@ -2,12 +2,12 @@
   "schemaVersion": "signshield-risk/v0.2",
   "inputRef": "dump-tx/2026-06-03T00-07-00-000Z-token-transfer-to-dead.json",
   "verdict": {
-    "riskLevel": "HIGH",
-    "score": 70,
+    "riskLevel": "CRITICAL",
+    "score": 100,
     "confidence": "HIGH",
     "recommendedAction": "REJECT"
   },
-  "summary": "HIGH 风险：这笔交易会转移代币资产。主要风险：代币会被转出；收款地址是 burn/dead 地址。",
+  "summary": "CRITICAL 风险：这笔交易会转移代币资产。主要风险：代币会被转出；收款地址是 burn/dead 地址；未开源且存在外部调用。",
   "intent": {
     "category": "TOKEN_TRANSFER",
     "description": "这笔交易会转移代币或请求通过既有授权转移代币。",
@@ -55,6 +55,20 @@
       "evidence": {
         "recipient": "0x000000000000000000000000000000000000dead"
       }
+    },
+    {
+      "id": "unverified_source_external_calls",
+      "domain": "technical",
+      "severity": "HIGH",
+      "score": 40,
+      "title": "未开源且存在外部调用",
+      "description": "未验证源码叠加外部调用能力会降低交易行为可解释性并扩大攻击面。",
+      "evidence": {
+        "fields": [
+          "tokenSecurity.sourceVerified",
+          "tokenSecurity.externalCallPresent"
+        ]
+      }
     }
   ],
   "evidence": {
@@ -88,10 +102,80 @@
       "status": "not_run",
       "matches": []
     },
+    "erc20TokenRisk": {
+      "tokenSecurity": {
+        "sourceVerified": false,
+        "isProxy": null,
+        "implementationVerified": null,
+        "ownershipRenounced": null,
+        "hiddenOwner": null,
+        "canRegainOwnership": null,
+        "mintable": null,
+        "blacklistEnabled": null,
+        "whitelistEnabled": null,
+        "taxMutable": null,
+        "balanceMutable": null,
+        "withdrawFunction": null,
+        "selfdestructPresent": null,
+        "externalCallPresent": true,
+        "transferPausable": null,
+        "transferCooldown": null
+      },
+      "marketControls": {
+        "buyTaxBps": null,
+        "sellTaxBps": null,
+        "canBuy": true,
+        "canSell": true,
+        "cannotSellAll": false,
+        "antiWhaleEnabled": null,
+        "antiWhaleMutable": null
+      },
+      "holderAndLiquidity": {
+        "majorHolderRatio": null,
+        "top10HolderRatio": null,
+        "lpLockedRatio": null,
+        "topLpHolderRatio": null
+      },
+      "deployment": {
+        "deployedAt": null,
+        "ageDays": null,
+        "deployer": null,
+        "owner": null,
+        "dexPair": null
+      },
+      "metadata": {
+        "chainId": "eip155:10",
+        "address": "0x1000000000000000000000000000000000000004",
+        "symbol": "LAB-OP",
+        "decimals": 18,
+        "sources": [
+          "local_fixture"
+        ],
+        "name": "Synthetic Optimism Token Fixture"
+      },
+      "bytecodeScan": {
+        "status": "not_available",
+        "source": null,
+        "signals": {}
+      },
+      "subagentAssessments": [],
+      "sources": [
+        "local_token_risk_fixture",
+        "contract_reputation"
+      ],
+      "subagent": {
+        "status": "skipped",
+        "assessments": [],
+        "limitations": [
+          "Subagent mode is off."
+        ]
+      }
+    },
     "limitations": [
       "No live transaction simulation was executed.",
       "Live source verification, proxy, deployment age, or label data may be incomplete.",
-      "No live third-party threat intelligence was queried."
+      "No live third-party threat intelligence was queried.",
+      "Subagent mode is off."
     ]
   },
   "recommendation": "建议拒绝这笔交易，除非你能独立确认收款人、合约和资产影响完全符合预期。"

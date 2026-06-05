@@ -70,6 +70,31 @@
         "source": "local_attack_fixture",
         "label": "Synthetic drainer spender"
       }
+    },
+    {
+      "id": "mintable_owner_not_renounced",
+      "domain": "technical",
+      "severity": "HIGH",
+      "score": 45,
+      "title": "未放弃 owner 且可增发",
+      "description": "Owner 未放弃且 token 存在增发能力，可能稀释持有人资产。",
+      "evidence": {
+        "fields": [
+          "tokenSecurity.mintable",
+          "tokenSecurity.ownershipRenounced"
+        ]
+      }
+    },
+    {
+      "id": "mutable_tax",
+      "domain": "technical",
+      "severity": "MEDIUM",
+      "score": 30,
+      "title": "税率可被修改",
+      "description": "即使当前税率较低，特权角色后续也可能调高买卖税。",
+      "evidence": {
+        "field": "tokenSecurity.taxMutable"
+      }
     }
   ],
   "evidence": {
@@ -103,10 +128,80 @@
       "status": "not_run",
       "matches": []
     },
+    "erc20TokenRisk": {
+      "tokenSecurity": {
+        "sourceVerified": true,
+        "isProxy": null,
+        "implementationVerified": null,
+        "ownershipRenounced": false,
+        "hiddenOwner": null,
+        "canRegainOwnership": null,
+        "mintable": true,
+        "blacklistEnabled": null,
+        "whitelistEnabled": null,
+        "taxMutable": true,
+        "balanceMutable": null,
+        "withdrawFunction": null,
+        "selfdestructPresent": null,
+        "externalCallPresent": null,
+        "transferPausable": null,
+        "transferCooldown": null
+      },
+      "marketControls": {
+        "buyTaxBps": 0,
+        "sellTaxBps": 0,
+        "canBuy": true,
+        "canSell": true,
+        "cannotSellAll": false,
+        "antiWhaleEnabled": null,
+        "antiWhaleMutable": null
+      },
+      "holderAndLiquidity": {
+        "majorHolderRatio": null,
+        "top10HolderRatio": 0.42,
+        "lpLockedRatio": 0.8,
+        "topLpHolderRatio": 0.2
+      },
+      "deployment": {
+        "deployedAt": null,
+        "ageDays": 3,
+        "deployer": "0x5000000000000000000000000000000000000001",
+        "owner": "0x5000000000000000000000000000000000000002",
+        "dexPair": null
+      },
+      "metadata": {
+        "chainId": "eip155:1",
+        "address": "0x1000000000000000000000000000000000000001",
+        "symbol": "LAB-USDC",
+        "decimals": 6,
+        "sources": [
+          "local_fixture"
+        ],
+        "name": "Synthetic USDC Fixture"
+      },
+      "bytecodeScan": {
+        "status": "not_available",
+        "source": null,
+        "signals": {}
+      },
+      "subagentAssessments": [],
+      "sources": [
+        "local_token_risk_fixture",
+        "contract_reputation"
+      ],
+      "subagent": {
+        "status": "skipped",
+        "assessments": [],
+        "limitations": [
+          "Subagent mode is off."
+        ]
+      }
+    },
     "limitations": [
       "No live transaction simulation was executed.",
       "Live source verification, proxy, deployment age, or label data may be incomplete.",
-      "No live third-party threat intelligence was queried."
+      "No live third-party threat intelligence was queried.",
+      "Subagent mode is off."
     ]
   },
   "recommendation": "建议拒绝签名。spender 已命中恶意代理样例，继续授权可能导致代币被转走。"

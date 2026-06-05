@@ -70,6 +70,65 @@
         "source": "local_attack_fixture",
         "label": "Synthetic Base drainer"
       }
+    },
+    {
+      "id": "proxy_implementation_unverified",
+      "domain": "technical",
+      "severity": "HIGH",
+      "score": 45,
+      "title": "Proxy implementation 未验证",
+      "description": "Token 是 proxy 且 implementation 未验证，实际逻辑可能不可审查或可升级变化。",
+      "evidence": {
+        "fields": [
+          "tokenSecurity.isProxy",
+          "tokenSecurity.implementationVerified"
+        ]
+      }
+    },
+    {
+      "id": "high_sell_tax",
+      "domain": "technical",
+      "severity": "HIGH",
+      "score": 35,
+      "title": "卖税较高",
+      "description": "Token sell tax 约为 12.00%。",
+      "evidence": {
+        "sellTaxBps": 1200
+      }
+    },
+    {
+      "id": "sell_tax_much_higher_than_buy_tax",
+      "domain": "technical",
+      "severity": "HIGH",
+      "score": 35,
+      "title": "卖税明显高于买税",
+      "description": "卖出成本显著高于买入，可能是软性 honeypot 或退出惩罚机制。",
+      "evidence": {
+        "buyTaxBps": 0,
+        "sellTaxBps": 1200
+      }
+    },
+    {
+      "id": "lp_not_locked",
+      "domain": "technical",
+      "severity": "HIGH",
+      "score": 40,
+      "title": "LP 锁定比例较低",
+      "description": "LP 未锁定或锁定比例很低，项目方可能撤池导致用户无法卖出。",
+      "evidence": {
+        "lpLockedRatio": 0.1
+      }
+    },
+    {
+      "id": "lp_holder_concentration",
+      "domain": "technical",
+      "severity": "HIGH",
+      "score": 35,
+      "title": "LP 持有人高度集中",
+      "description": "LP token 高度集中会提高撤池或流动性操纵风险。",
+      "evidence": {
+        "topLpHolderRatio": 0.82
+      }
     }
   ],
   "evidence": {
@@ -103,10 +162,80 @@
       "status": "not_run",
       "matches": []
     },
+    "erc20TokenRisk": {
+      "tokenSecurity": {
+        "sourceVerified": true,
+        "isProxy": true,
+        "implementationVerified": false,
+        "ownershipRenounced": false,
+        "hiddenOwner": null,
+        "canRegainOwnership": null,
+        "mintable": null,
+        "blacklistEnabled": null,
+        "whitelistEnabled": null,
+        "taxMutable": null,
+        "balanceMutable": null,
+        "withdrawFunction": null,
+        "selfdestructPresent": null,
+        "externalCallPresent": null,
+        "transferPausable": null,
+        "transferCooldown": null
+      },
+      "marketControls": {
+        "buyTaxBps": 0,
+        "sellTaxBps": 1200,
+        "canBuy": true,
+        "canSell": true,
+        "cannotSellAll": false,
+        "antiWhaleEnabled": null,
+        "antiWhaleMutable": null
+      },
+      "holderAndLiquidity": {
+        "majorHolderRatio": null,
+        "top10HolderRatio": null,
+        "lpLockedRatio": 0.1,
+        "topLpHolderRatio": 0.82
+      },
+      "deployment": {
+        "deployedAt": null,
+        "ageDays": null,
+        "deployer": null,
+        "owner": null,
+        "dexPair": null
+      },
+      "metadata": {
+        "chainId": "eip155:8453",
+        "address": "0x1000000000000000000000000000000000000007",
+        "symbol": "LAB-USDbC",
+        "decimals": 6,
+        "sources": [
+          "local_fixture"
+        ],
+        "name": "Synthetic Base Stablecoin Fixture"
+      },
+      "bytecodeScan": {
+        "status": "not_available",
+        "source": null,
+        "signals": {}
+      },
+      "subagentAssessments": [],
+      "sources": [
+        "local_token_risk_fixture",
+        "contract_reputation"
+      ],
+      "subagent": {
+        "status": "skipped",
+        "assessments": [],
+        "limitations": [
+          "Subagent mode is off."
+        ]
+      }
+    },
     "limitations": [
       "No live transaction simulation was executed.",
       "Live source verification, proxy, deployment age, or label data may be incomplete.",
-      "No live third-party threat intelligence was queried."
+      "No live third-party threat intelligence was queried.",
+      "Subagent mode is off."
     ]
   },
   "recommendation": "建议拒绝签名。spender 已命中恶意代理样例，继续授权可能导致代币被转走。"

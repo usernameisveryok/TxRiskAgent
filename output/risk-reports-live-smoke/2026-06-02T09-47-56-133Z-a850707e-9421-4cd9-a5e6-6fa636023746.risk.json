@@ -113,6 +113,126 @@
           "status": "ok",
           "provider": "goplus",
           "matches": [],
+          "tokenReports": {
+            "0x55d398326f99059ff775485246999027b3197955": {
+              "anti_whale_modifiable": "0",
+              "buy_tax": "0",
+              "can_take_back_ownership": "0",
+              "creator_address": "0x970609ba2c160a1b491b90867681918bdc9773af",
+              "creator_balance": "10734.237322061668049374",
+              "creator_percent": "0.000001",
+              "external_call": "0",
+              "hidden_owner": "0",
+              "holder_count": "62617864",
+              "holders": [
+                {
+                  "address": "0x8894e0a0c962cb723c1976a4421c95949be2d4e3",
+                  "tag": "",
+                  "is_contract": 0,
+                  "balance": "399993320.76349887531098019",
+                  "percent": "0.043548574276152530",
+                  "is_locked": 0
+                },
+                {
+                  "address": "0x934186fd8352fa734eb0df82e8863e6449193294",
+                  "tag": "",
+                  "is_contract": 1,
+                  "balance": "200000020",
+                  "percent": "0.021774652910646279",
+                  "is_locked": 0
+                },
+                {
+                  "address": "0x95047fe21071e8038810975cfc9ee6da7dee33a4",
+                  "tag": "",
+                  "is_contract": 1,
+                  "balance": "200000007",
+                  "percent": "0.021774651495293981",
+                  "is_locked": 0
+                },
+                {
+                  "address": "0x128463a60784c4d3f46c23af3f65ed859ba87974",
+                  "tag": "",
+                  "is_contract": 1,
+                  "balance": "186899768.841163774536342232",
+                  "percent": "0.020348385943143223",
+                  "is_locked": 0
+                },
+                {
+                  "address": "0xf977814e90da44bfa03b6295a0616a897441acec",
+                  "tag": "",
+                  "is_contract": 0,
+                  "balance": "159563639.719719732430416221",
+                  "percent": "0.017372212623060285",
+                  "is_locked": 0
+                },
+                {
+                  "address": "0x46852e1ff32739ddd2623bd06b27ca39f1143cc7",
+                  "tag": "",
+                  "is_contract": 1,
+                  "balance": "150000001.4",
+                  "percent": "0.016330988202308459",
+                  "is_locked": 0
+                },
+                {
+                  "address": "0x092fe28430bade62c7c044b9c77d0aaa06241319",
+                  "tag": "",
+                  "is_contract": 1,
+                  "balance": "134664584.235466869968190901",
+                  "percent": "0.014661371439281754",
+                  "is_locked": 0
+                },
+                {
+                  "address": "0xef3aeff9a5f61c6dda33069c58c1434006e13b20",
+                  "tag": "",
+                  "is_contract": 0,
+                  "balance": "123137868.899251419234184828",
+                  "percent": "0.013406420436547280",
+                  "is_locked": 0
+                },
+                {
+                  "address": "0xfd5840cd36d94d7229439859c0112a4185bc0255",
+                  "tag": "",
+                  "is_contract": 1,
+                  "balance": "83143360.105968970080917265",
+                  "percent": "0.009052088135452931",
+                  "is_locked": 0
+                },
+                {
+                  "address": "0x3ce02596ca6982662e3d9b66c73e42a7b9d90e8e",
+                  "tag": "",
+                  "is_contract": 1,
+                  "balance": "69809500",
+                  "percent": "0.007600387401790066",
+                  "is_locked": 0
+                }
+              ],
+              "honeypot_with_same_creator": "0",
+              "is_anti_whale": "0",
+              "is_blacklisted": "0",
+              "is_honeypot": "0",
+              "is_in_dex": "1",
+              "is_mintable": "1",
+              "is_open_source": "1",
+              "is_proxy": "0",
+              "is_whitelisted": "0",
+              "owner_address": "0xf68a4b64162906eff0ff6ae34e2bb1cd42fef62d",
+              "owner_balance": "1502.0092659182822",
+              "owner_change_balance": "0",
+              "owner_percent": "0.0",
+              "personal_slippage_modifiable": "0",
+              "selfdestruct": "0",
+              "sell_tax": "0",
+              "slippage_modifiable": "0",
+              "token_name": "Tether USD",
+              "token_symbol": "USDT",
+              "total_supply": "9184992331.25383166658361154",
+              "trading_cooldown": "0",
+              "transfer_pausable": "0",
+              "transfer_tax": "",
+              "cannot_buy": "0",
+              "trust_list": "1"
+            }
+          },
           "rawStatus": 1
         },
         "metamask": {
@@ -122,9 +242,79 @@
         }
       }
     },
+    "erc20TokenRisk": {
+      "tokenSecurity": {
+        "sourceVerified": null,
+        "isProxy": false,
+        "implementationVerified": null,
+        "ownershipRenounced": null,
+        "hiddenOwner": false,
+        "canRegainOwnership": false,
+        "mintable": true,
+        "blacklistEnabled": false,
+        "whitelistEnabled": false,
+        "taxMutable": null,
+        "balanceMutable": null,
+        "withdrawFunction": null,
+        "selfdestructPresent": false,
+        "externalCallPresent": false,
+        "transferPausable": null,
+        "transferCooldown": false
+      },
+      "marketControls": {
+        "buyTaxBps": 0,
+        "sellTaxBps": 0,
+        "canBuy": null,
+        "canSell": true,
+        "cannotSellAll": null,
+        "antiWhaleEnabled": false,
+        "antiWhaleMutable": null
+      },
+      "holderAndLiquidity": {
+        "majorHolderRatio": null,
+        "top10HolderRatio": null,
+        "lpLockedRatio": null,
+        "topLpHolderRatio": null
+      },
+      "deployment": {
+        "deployedAt": null,
+        "ageDays": null,
+        "deployer": null,
+        "owner": null,
+        "dexPair": null
+      },
+      "metadata": {
+        "chainId": "eip155:56",
+        "address": "0x55d398326f99059ff775485246999027b3197955",
+        "symbol": "USDT",
+        "decimals": 18,
+        "sources": [
+          "local_fixture"
+        ],
+        "name": "Tether USD"
+      },
+      "bytecodeScan": {
+        "status": "not_available",
+        "source": null,
+        "signals": {}
+      },
+      "subagentAssessments": [],
+      "sources": [
+        "contract_reputation",
+        "goplus"
+      ],
+      "subagent": {
+        "status": "skipped",
+        "assessments": [],
+        "limitations": [
+          "Subagent mode is off."
+        ]
+      }
+    },
     "limitations": [
       "No live transaction simulation was executed.",
-      "Live source verification, proxy, deployment age, or label data may be incomplete."
+      "Live source verification, proxy, deployment age, or label data may be incomplete.",
+      "Subagent mode is off."
     ]
   },
   "recommendation": "建议拒绝签名。spender 已命中恶意代理样例，继续授权可能导致代币被转走。"

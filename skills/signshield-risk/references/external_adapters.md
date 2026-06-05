@@ -14,6 +14,13 @@ Live mode enables all configured adapters:
 uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx --live --output output/risk-reports-live
 ```
 
+ERC20 subagent modes:
+
+```bash
+uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx --subagent dry-run --output output/risk-reports-subagent-context
+uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx --subagent live --subagent-command ./agent-command --output output/risk-reports-subagent-live
+```
+
 ## 1. OpenChain / 4byte Calldata Resolver
 
 Implementation:
@@ -117,3 +124,32 @@ PY
 ```
 
 Use live mode for end-to-end enrichment. If credentials are absent, the result remains valid and documents missing providers in `limitations`.
+
+## 6. ERC20 Token Risk Profile
+
+Implementation:
+
+- `signshield.token_metadata.TokenMetadataResolver`
+- `signshield.token_security_normalizer.build_erc20_token_risk_profile`
+- `signshield.contract_bytecode_scanner.scan_contract_bytecode`
+- `signshield.erc20_scoring.apply_erc20_token_profile_rules`
+
+Provider behavior:
+
+- Token metadata uses local fixtures first, optional RPC second, and explorer contract names as fallback.
+- GoPlus raw token reports are normalized into CertiK-style fields when available.
+- Bytecode scanning is lightweight and only marks selector/opcode presence. It does not prove source-level semantics.
+- Missing holder/LP/deployment fields remain `null`.
+
+## 7. Subagent Harness
+
+Implementation:
+
+- `signshield.subagent_context_builder.build_subagent_context`
+- `signshield.subagent_harness.run_subagent_harness`
+
+Command protocol:
+
+- The command receives JSON context on stdin.
+- The command must print JSON with `status`, `assessments`, and `limitations`.
+- Invalid JSON or non-zero exit is converted to structured `error`.

@@ -90,10 +90,80 @@
       "status": "not_run",
       "matches": []
     },
+    "erc20TokenRisk": {
+      "tokenSecurity": {
+        "sourceVerified": true,
+        "isProxy": null,
+        "implementationVerified": null,
+        "ownershipRenounced": true,
+        "hiddenOwner": null,
+        "canRegainOwnership": null,
+        "mintable": null,
+        "blacklistEnabled": null,
+        "whitelistEnabled": null,
+        "taxMutable": null,
+        "balanceMutable": null,
+        "withdrawFunction": null,
+        "selfdestructPresent": null,
+        "externalCallPresent": null,
+        "transferPausable": null,
+        "transferCooldown": null
+      },
+      "marketControls": {
+        "buyTaxBps": null,
+        "sellTaxBps": null,
+        "canBuy": true,
+        "canSell": true,
+        "cannotSellAll": false,
+        "antiWhaleEnabled": null,
+        "antiWhaleMutable": null
+      },
+      "holderAndLiquidity": {
+        "majorHolderRatio": null,
+        "top10HolderRatio": null,
+        "lpLockedRatio": null,
+        "topLpHolderRatio": null
+      },
+      "deployment": {
+        "deployedAt": null,
+        "ageDays": null,
+        "deployer": null,
+        "owner": null,
+        "dexPair": null
+      },
+      "metadata": {
+        "chainId": "eip155:1",
+        "address": "0x1000000000000000000000000000000000000003",
+        "symbol": "LAB-WETH",
+        "decimals": 18,
+        "sources": [
+          "local_fixture"
+        ],
+        "name": "Synthetic WETH Fixture"
+      },
+      "bytecodeScan": {
+        "status": "not_available",
+        "source": null,
+        "signals": {}
+      },
+      "subagentAssessments": [],
+      "sources": [
+        "local_token_risk_fixture",
+        "contract_reputation"
+      ],
+      "subagent": {
+        "status": "skipped",
+        "assessments": [],
+        "limitations": [
+          "Subagent mode is off."
+        ]
+      }
+    },
     "limitations": [
       "No live transaction simulation was executed.",
       "Live source verification, proxy, deployment age, or label data may be incomplete.",
-      "No live third-party threat intelligence was queried."
+      "No live third-party threat intelligence was queried.",
+      "Subagent mode is off."
     ]
   },
   "recommendation": "建议拒绝这笔交易，除非你能独立确认收款人、合约和资产影响完全符合预期。"

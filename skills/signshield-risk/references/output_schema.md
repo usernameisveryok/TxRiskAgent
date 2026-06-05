@@ -44,6 +44,49 @@ The analyzer returns one JSON object per input transaction.
     "simulation": {},
     "contractReputation": {},
     "threatIntel": {},
+    "erc20TokenRisk": {
+      "tokenSecurity": {
+        "sourceVerified": true,
+        "isProxy": false,
+        "implementationVerified": null,
+        "ownershipRenounced": false,
+        "hiddenOwner": false,
+        "canRegainOwnership": false,
+        "mintable": false,
+        "blacklistEnabled": false,
+        "whitelistEnabled": false,
+        "taxMutable": false,
+        "balanceMutable": false,
+        "withdrawFunction": false,
+        "selfdestructPresent": false,
+        "externalCallPresent": false,
+        "transferPausable": false,
+        "transferCooldown": false
+      },
+      "marketControls": {
+        "buyTaxBps": 0,
+        "sellTaxBps": 0,
+        "canBuy": true,
+        "canSell": true,
+        "cannotSellAll": false,
+        "antiWhaleEnabled": false,
+        "antiWhaleMutable": false
+      },
+      "holderAndLiquidity": {
+        "majorHolderRatio": null,
+        "top10HolderRatio": null,
+        "lpLockedRatio": null,
+        "topLpHolderRatio": null
+      },
+      "deployment": {
+        "deployedAt": null,
+        "ageDays": null,
+        "deployer": null,
+        "owner": null,
+        "dexPair": null
+      },
+      "subagentAssessments": []
+    },
     "limitations": []
   },
   "recommendation": "Plain-language next action."
@@ -70,3 +113,13 @@ Adapters must not throw into the top-level CLI for expected integration problems
 - `unsupported_chain`: Provider does not support the chain.
 - `error`: HTTP, auth, rate-limit, or parse failure. Include a short `error`.
 - `not_run`: Adapter was disabled because `--live` was not used.
+
+## Subagent Harness
+
+Subagent mode is controlled by CLI `--subagent off|dry-run|live`.
+
+- `off`: no context is generated.
+- `dry-run`: context is attached at `evidence.erc20TokenRisk.subagent.context`; no assessment changes verdict or risk factors.
+- `live`: `SIGNSSHIELD_SUBAGENT_COMMAND` or `--subagent-command` must point to a command that reads context JSON from stdin and writes the required assessment JSON to stdout.
+
+Subagent output is advisory. It may append `subagentAssessments` and recommended risk factors; it must not overwrite deterministic facts.

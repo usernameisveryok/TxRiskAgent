@@ -3,11 +3,11 @@
   "inputRef": "dump-tx/2026-06-03T00-08-00-000Z-transferfrom-prior-allowance-drain.json",
   "verdict": {
     "riskLevel": "CRITICAL",
-    "score": 85,
+    "score": 100,
     "confidence": "HIGH",
     "recommendedAction": "REJECT"
   },
-  "summary": "CRITICAL 风险：这笔交易会转移代币资产。主要风险：代币会被转出；代币接收地址命中本地风险样例。",
+  "summary": "CRITICAL 风险：这笔交易会转移代币资产。主要风险：代币会被转出；代币接收地址命中本地风险样例；未放弃 owner 且可增发。",
   "intent": {
     "category": "TOKEN_TRANSFER",
     "description": "这笔交易会转移代币或请求通过既有授权转移代币。",
@@ -57,6 +57,31 @@
         "source": "local_attack_fixture",
         "label": "Synthetic asset-drain recipient"
       }
+    },
+    {
+      "id": "mintable_owner_not_renounced",
+      "domain": "technical",
+      "severity": "HIGH",
+      "score": 45,
+      "title": "未放弃 owner 且可增发",
+      "description": "Owner 未放弃且 token 存在增发能力，可能稀释持有人资产。",
+      "evidence": {
+        "fields": [
+          "tokenSecurity.mintable",
+          "tokenSecurity.ownershipRenounced"
+        ]
+      }
+    },
+    {
+      "id": "mutable_tax",
+      "domain": "technical",
+      "severity": "MEDIUM",
+      "score": 30,
+      "title": "税率可被修改",
+      "description": "即使当前税率较低，特权角色后续也可能调高买卖税。",
+      "evidence": {
+        "field": "tokenSecurity.taxMutable"
+      }
     }
   ],
   "evidence": {
@@ -91,10 +116,80 @@
       "status": "not_run",
       "matches": []
     },
+    "erc20TokenRisk": {
+      "tokenSecurity": {
+        "sourceVerified": true,
+        "isProxy": null,
+        "implementationVerified": null,
+        "ownershipRenounced": false,
+        "hiddenOwner": null,
+        "canRegainOwnership": null,
+        "mintable": true,
+        "blacklistEnabled": null,
+        "whitelistEnabled": null,
+        "taxMutable": true,
+        "balanceMutable": null,
+        "withdrawFunction": null,
+        "selfdestructPresent": null,
+        "externalCallPresent": null,
+        "transferPausable": null,
+        "transferCooldown": null
+      },
+      "marketControls": {
+        "buyTaxBps": 0,
+        "sellTaxBps": 0,
+        "canBuy": true,
+        "canSell": true,
+        "cannotSellAll": false,
+        "antiWhaleEnabled": null,
+        "antiWhaleMutable": null
+      },
+      "holderAndLiquidity": {
+        "majorHolderRatio": null,
+        "top10HolderRatio": 0.42,
+        "lpLockedRatio": 0.8,
+        "topLpHolderRatio": 0.2
+      },
+      "deployment": {
+        "deployedAt": null,
+        "ageDays": 3,
+        "deployer": "0x5000000000000000000000000000000000000001",
+        "owner": "0x5000000000000000000000000000000000000002",
+        "dexPair": null
+      },
+      "metadata": {
+        "chainId": "eip155:1",
+        "address": "0x1000000000000000000000000000000000000001",
+        "symbol": "LAB-USDC",
+        "decimals": 6,
+        "sources": [
+          "local_fixture"
+        ],
+        "name": "Synthetic USDC Fixture"
+      },
+      "bytecodeScan": {
+        "status": "not_available",
+        "source": null,
+        "signals": {}
+      },
+      "subagentAssessments": [],
+      "sources": [
+        "local_token_risk_fixture",
+        "contract_reputation"
+      ],
+      "subagent": {
+        "status": "skipped",
+        "assessments": [],
+        "limitations": [
+          "Subagent mode is off."
+        ]
+      }
+    },
     "limitations": [
       "No live transaction simulation was executed.",
       "Live source verification, proxy, deployment age, or label data may be incomplete.",
-      "No live third-party threat intelligence was queried."
+      "No live third-party threat intelligence was queried.",
+      "Subagent mode is off."
     ]
   },
   "recommendation": "建议拒绝这笔交易，除非你能独立确认收款人、合约和资产影响完全符合预期。"

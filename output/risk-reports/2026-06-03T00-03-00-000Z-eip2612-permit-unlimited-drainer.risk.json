@@ -70,6 +70,28 @@
         "source": "local_attack_fixture",
         "label": "Synthetic drainer spender"
       }
+    },
+    {
+      "id": "hidden_owner",
+      "domain": "technical",
+      "severity": "CRITICAL",
+      "score": 60,
+      "title": "Token 存在隐藏 owner",
+      "description": "合约可能存在绕过表面 owner 状态的隐藏所有者权限。",
+      "evidence": {
+        "field": "tokenSecurity.hiddenOwner"
+      }
+    },
+    {
+      "id": "ownership_regain_backdoor",
+      "domain": "technical",
+      "severity": "CRITICAL",
+      "score": 60,
+      "title": "Owner 可重新获得所有权",
+      "description": "合约可能存在 renounce 后重新取回所有权的后门。",
+      "evidence": {
+        "field": "tokenSecurity.canRegainOwnership"
+      }
     }
   ],
   "evidence": {
@@ -108,10 +130,80 @@
       "status": "not_run",
       "matches": []
     },
+    "erc20TokenRisk": {
+      "tokenSecurity": {
+        "sourceVerified": true,
+        "isProxy": null,
+        "implementationVerified": null,
+        "ownershipRenounced": false,
+        "hiddenOwner": true,
+        "canRegainOwnership": true,
+        "mintable": null,
+        "blacklistEnabled": null,
+        "whitelistEnabled": null,
+        "taxMutable": null,
+        "balanceMutable": null,
+        "withdrawFunction": null,
+        "selfdestructPresent": null,
+        "externalCallPresent": null,
+        "transferPausable": null,
+        "transferCooldown": null
+      },
+      "marketControls": {
+        "buyTaxBps": null,
+        "sellTaxBps": null,
+        "canBuy": true,
+        "canSell": true,
+        "cannotSellAll": false,
+        "antiWhaleEnabled": null,
+        "antiWhaleMutable": null
+      },
+      "holderAndLiquidity": {
+        "majorHolderRatio": null,
+        "top10HolderRatio": null,
+        "lpLockedRatio": null,
+        "topLpHolderRatio": null
+      },
+      "deployment": {
+        "deployedAt": null,
+        "ageDays": null,
+        "deployer": null,
+        "owner": null,
+        "dexPair": null
+      },
+      "metadata": {
+        "chainId": "eip155:1",
+        "address": "0x1000000000000000000000000000000000000002",
+        "symbol": "LAB-DAI",
+        "decimals": 18,
+        "sources": [
+          "local_fixture"
+        ],
+        "name": "Synthetic DAI Fixture"
+      },
+      "bytecodeScan": {
+        "status": "not_available",
+        "source": null,
+        "signals": {}
+      },
+      "subagentAssessments": [],
+      "sources": [
+        "local_token_risk_fixture",
+        "contract_reputation"
+      ],
+      "subagent": {
+        "status": "skipped",
+        "assessments": [],
+        "limitations": [
+          "Subagent mode is off."
+        ]
+      }
+    },
     "limitations": [
       "No live transaction simulation was executed.",
       "Live source verification, proxy, deployment age, or label data may be incomplete.",
-      "No live third-party threat intelligence was queried."
+      "No live third-party threat intelligence was queried.",
+      "Subagent mode is off."
     ]
   },
   "recommendation": "建议拒绝签名。spender 已命中恶意代理样例，继续授权可能导致代币被转走。"

@@ -33,13 +33,20 @@ uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx --live --
 
 Live adapters are best-effort. Missing API keys or provider failures are written into `evidence` and `limitations`; they should not crash the analysis.
 
+ERC20 semantic review can be enabled separately:
+
+```bash
+uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx --subagent dry-run
+uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx --subagent live --subagent-command ./agent-command
+```
+
 ## Workflow
 
 1. Normalize input.
    Accept either `chainId` plus `transaction`, or a flat transaction-like object. Convert `eip155:<id>` into an EVM chain id. Validate addresses and hex values.
 
 2. Build the fact layer.
-   Decode calldata selectors and standard ABI parameters. Extract native value, token/spender/operator/amount, and origin. In live mode, enrich facts through Sourcify/OpenChain + 4byte, Tenderly, Etherscan/Blockscout, GoPlus, and MetaMask eth-phishing-detect.
+   Decode calldata selectors and standard ABI parameters. Extract native value, token/spender/operator/amount, and origin. For ERC20 interactions, build `evidence.erc20TokenRisk` from token metadata, token security facts, contract reputation, bytecode scan signals, holder/liquidity facts, and optional subagent assessments. In live mode, enrich facts through Sourcify/OpenChain + 4byte, Tenderly, Etherscan/Blockscout, GoPlus, and MetaMask eth-phishing-detect.
 
 3. Classify intent.
    Route to one primary category: `NATIVE_TRANSFER`, `ERC20_APPROVAL`, `NFT_APPROVAL`, `TOKEN_TRANSFER`, `MULTICALL`, `UNKNOWN_CONTRACT`, or `UNSUPPORTED_CHAIN`.
@@ -68,7 +75,7 @@ Return JSON compatible with `references/output_schema.md`. Every result should i
 - `intent`: primary category and natural-language description.
 - `assetImpact`: assets, permissions, or balances affected.
 - `riskFactors`: concrete factors with severity, domain, score contribution, and evidence.
-- `evidence`: decoded calldata, simulation placeholder, contract reputation, threat intel, and limitations.
+- `evidence`: decoded calldata, simulation placeholder, contract reputation, threat intel, ERC20 token risk profile when applicable, and limitations.
 - `summary` and `recommendation`: user-facing Chinese explanations in this prototype.
 
 ## References
@@ -76,6 +83,7 @@ Return JSON compatible with `references/output_schema.md`. Every result should i
 - Read `references/risk_branches.md` when changing branch logic.
 - Read `references/output_schema.md` when changing JSON fields.
 - Read `references/external_adapters.md` when changing live provider integrations.
+- Read `dump-tx/certik-token-scan-erc20-risk-summary.md` when changing ERC20 token-risk profile fields or CertiK-style scoring rules.
 - Use `scripts/analyze_evm_tx.py` as the deterministic baseline implementation.
 
 ## Validation

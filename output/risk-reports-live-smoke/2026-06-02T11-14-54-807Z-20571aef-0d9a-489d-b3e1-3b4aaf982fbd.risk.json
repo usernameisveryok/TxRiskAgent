@@ -104,6 +104,7 @@
           "status": "ok",
           "provider": "goplus",
           "matches": [],
+          "tokenReports": {},
           "rawStatus": 1
         },
         "metamask": {
@@ -113,6 +114,7 @@
         }
       }
     },
+    "erc20TokenRisk": null,
     "limitations": [
       "No live transaction simulation was executed.",
       "Live source verification, proxy, deployment age, or label data may be incomplete."
