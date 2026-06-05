@@ -77,6 +77,16 @@ Check live integration health without writing credentials to disk:
 ETHERSCAN_API_KEY=... uv run python skills/signshield-risk/scripts/check_integrations.py
 ```
 
+You can also keep local credentials in a git-ignored `.env` file copied from `.env.example`.
+The CLI and integration check load `.env` automatically, while explicit CLI flags and exported environment variables still take precedence.
+
+Tenderly smoke check with local `.env`:
+
+```bash
+python skills/signshield-risk/scripts/check_integrations.py
+python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx/2026-06-02T09-47-56-133Z-a850707e-9421-4cd9-a5e6-6fa636023746.json --live
+```
+
 Subagent dry-run context:
 
 ```bash
@@ -118,6 +128,7 @@ export SIGNSSHIELD_OPENAI_REASONING_EFFORT=medium
 ```
 
 Missing credentials are reported in `evidence.limitations`; they do not abort analysis.
+For local development, copy `.env.example` to `.env` and put real credentials there. `.env` is ignored by git; do not commit real API keys.
 Reports also include `evidence.providerHealth` and `evidence.evidenceQuality` so operators can tell which live sources participated in the decision. Runtime modes are:
 
 - `offline`: deterministic demo/test mode; local fixtures may create high-confidence risk factors.

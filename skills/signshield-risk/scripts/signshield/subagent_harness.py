@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shlex
 import subprocess
 from typing import Any
@@ -19,7 +20,7 @@ class CommandSubagentClient:
     def assess(self, context: dict[str, Any]) -> dict[str, Any]:
         try:
             completed = subprocess.run(
-                shlex.split(self.command),
+                shlex.split(self.command, posix=os.name != "nt"),
                 input=json.dumps(context, ensure_ascii=False),
                 text=True,
                 capture_output=True,

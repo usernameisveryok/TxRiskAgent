@@ -512,11 +512,43 @@ def apply_threat_intel_rules(threat_intel: dict[str, Any], factors: list[dict[st
 
 
 def apply_simulation_rules(simulation: dict[str, Any], factors: list[dict[str, Any]]) -> None:
-    for fact in simulation.get("facts", []):
+    simulation_facts = simulation.get("facts", [])
+    has_wallet_outflow = any(
+        fact.get("type") in {"asset_change", "balance_change"} and fact.get("walletDirection") == "out"
+        for fact in simulation_facts
+        if isinstance(fact, dict)
+    )
+    for fact in simulation_facts:
         if fact.get("type") == "revert_or_error":
-            add_factor(factors, "simulation_revert_or_error", "uncertainty", "MEDIUM", 20, "交易模拟失败或 revert", "模拟返回失败或错误，不能把缺失结果视为安全。", fact)
-        elif fact.get("type") in {"asset_changes", "balance_diff", "balance_diffs"}:
-            add_factor(factors, "simulation_asset_change_present", "technical", "MEDIUM", 20, "模拟显示资产变化", "交易模拟返回了资产或余额变化，需要与用户预期核对。", {"type": fact.get("type")})
+            add_factor(factors, "simulation_revert_or_error", "uncertainty", "MEDIUM", 20, "交易模拟失败或 revert", "模拟返回失败或错误，不能把缺失结果视为安全。", fact, "live_provider")
+        elif fact.get("type") in {"asset_change", "balance_change"} and fact.get("walletDirection") == "out":
+            amount = fact.get("amountFormatted") or fact.get("amountRaw") or "unknown amount"
+            symbol = fact.get("symbol") or fact.get("tokenAddress") or "asset"
+            add_factor(
+                factors,
+                "simulation_wallet_asset_outflow",
+                "technical",
+                "HIGH",
+                35,
+                "模拟显示钱包资产流出",
+                f"Tenderly 模拟显示当前钱包会流出 {amount} {symbol}，需要确认这是否符合预期。",
+                fact,
+                "live_provider",
+            )
+        elif fact.get("type") == "approval_change" and fact.get("walletOwner") is True:
+            add_factor(
+                factors,
+                "simulation_approval_change",
+                "technical",
+                "MEDIUM",
+                25,
+                "模拟显示授权状态变化",
+                "Tenderly 模拟显示当前钱包的授权状态会发生变化，需要确认 spender 和额度。",
+                fact,
+                "live_provider",
+            )
+        elif fact.get("type") in {"asset_change", "balance_change"} and not has_wallet_outflow:
+            add_factor(factors, "simulation_asset_change_present", "technical", "MEDIUM", 20, "模拟显示资产变化", "交易模拟返回了资产或余额变化，需要与用户预期核对。", {"type": fact.get("type")}, "live_provider")
 
 
 def confidence_for(category: str, decoded: dict[str, Any], simulation: dict[str, Any], contract_rep: dict[str, Any], threat_intel: dict[str, Any], factors: list[dict[str, Any]]) -> str:

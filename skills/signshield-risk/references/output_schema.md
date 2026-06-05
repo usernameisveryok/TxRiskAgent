@@ -10,7 +10,14 @@ The analyzer returns one JSON object per input transaction.
     "riskLevel": "LOW | MEDIUM | HIGH | CRITICAL | UNSUPPORTED",
     "score": 0,
     "confidence": "LOW | MEDIUM | HIGH",
-    "recommendedAction": "CONTINUE | CONTINUE_WITH_CAUTION | REDUCE_ALLOWANCE | USE_BURNER | REJECT | UNSUPPORTED"
+    "recommendedAction": "CONTINUE | CONTINUE_WITH_CAUTION | REDUCE_ALLOWANCE | USE_BURNER | REVIEW_OR_REJECT | REJECT | UNSUPPORTED",
+    "evidenceGate": {
+      "guarded": false,
+      "requiresLiveEvidence": false,
+      "hasSimulation": false,
+      "hasContractReputation": false,
+      "reasons": []
+    }
   },
   "summary": "Plain-language user-facing summary.",
   "intent": {
@@ -41,7 +48,28 @@ The analyzer returns one JSON object per input transaction.
   ],
   "evidence": {
     "calldata": {},
-    "simulation": {},
+    "simulation": {
+      "status": "ok | config_missing | error | not_run",
+      "provider": "tenderly",
+      "facts": [
+        {
+          "type": "asset_change | balance_change | approval_change | revert_or_error | call_trace_present",
+          "walletDirection": "out | in | self | none",
+          "amountRaw": "1000000000000000000",
+          "amountFormatted": "1",
+          "symbol": "ETH",
+          "from": "0x...",
+          "to": "0x..."
+        }
+      ],
+      "rawSummary": {
+        "id": "simulation-id",
+        "status": true,
+        "gasUsed": 21000,
+        "assetChangeCount": 1,
+        "balanceChangeCount": 0
+      }
+    },
     "contractReputation": {},
     "threatIntel": {},
     "erc20TokenRisk": {

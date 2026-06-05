@@ -44,6 +44,55 @@ def test_live_without_keys_reports_limitations_not_failure() -> None:
     assert result["verdict"]["riskLevel"] == "HIGH"
 
 
+def test_simulation_wallet_outflow_fact_affects_risk() -> None:
+    class FakeSimulation:
+        def simulate(self, chain_id: int, tx: dict) -> dict:
+            return {
+                "status": "ok",
+                "provider": "tenderly",
+                "facts": [
+                    {
+                        "type": "asset_change",
+                        "walletDirection": "out",
+                        "symbol": "USDT",
+                        "amountFormatted": "10",
+                        "from": tx["from"].lower(),
+                        "to": "0x00000000000000000000000000000000000000bb",
+                    }
+                ],
+            }
+
+    result = analyze_transaction(load_dump("2026-06-02T09-47"), options=AnalysisOptions(mode="live-best-effort"), simulation_adapter=FakeSimulation())
+    factor_ids = {factor["id"] for factor in result["riskFactors"]}
+    assert "simulation_wallet_asset_outflow" in factor_ids
+    assert result["evidence"]["providerHealth"][1]["status"] == "ok"
+
+
+def test_simulation_outflow_does_not_add_generic_asset_change_factor() -> None:
+    class FakeSimulation:
+        def simulate(self, chain_id: int, tx: dict) -> dict:
+            return {
+                "status": "ok",
+                "provider": "tenderly",
+                "facts": [
+                    {"type": "balance_change", "address": "0x00000000000000000000000000000000000000bb"},
+                    {
+                        "type": "asset_change",
+                        "walletDirection": "out",
+                        "symbol": "ETH",
+                        "amountFormatted": "0.1",
+                        "from": tx["from"].lower(),
+                        "to": "0x00000000000000000000000000000000000000bb",
+                    },
+                ],
+            }
+
+    result = analyze_transaction(load_dump("2026-06-02T11-14"), options=AnalysisOptions(mode="live-best-effort"), simulation_adapter=FakeSimulation())
+    factor_ids = {factor["id"] for factor in result["riskFactors"]}
+    assert "simulation_wallet_asset_outflow" in factor_ids
+    assert "simulation_asset_change_present" not in factor_ids
+
+
 def test_all_dump_fixtures_analyze_offline() -> None:
     paths = sorted((ROOT / "dump-tx").glob("*.json"))
     assert len(paths) >= 17
