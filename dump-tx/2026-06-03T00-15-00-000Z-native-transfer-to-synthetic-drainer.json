@@ -1,0 +1,14 @@
+{
+  "chainId": "eip155:8453",
+  "transactionOrigin": "https://support-case.invalid",
+  "transaction": {
+    "from": "0xb7c360aaa4c2b9f727ff934baa6ba300ccc0f284",
+    "to": "0x3000000000000000000000000000000000008453",
+    "data": "0x",
+    "value": "0x6f05b59d3b20000",
+    "type": "0x2",
+    "gas": "0x5208",
+    "maxFeePerGas": "0x8af56a60",
+    "maxPriorityFeePerGas": "0x77359400"
+  }
+}

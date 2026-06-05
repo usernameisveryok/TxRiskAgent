@@ -1,0 +1,14 @@
+{
+  "chainId": "eip155:137",
+  "transactionOrigin": "https://polygon-nft-claim.invalid",
+  "transaction": {
+    "from": "0xb7c360aaa4c2b9f727ff934baa6ba300ccc0f284",
+    "to": "0x2000000000000000000000000000000000000137",
+    "data": "0xa22cb46500000000000000000000000030000000000000000000000000000000000001370000000000000000000000000000000000000000000000000000000000000001",
+    "value": "0x0",
+    "type": "0x2",
+    "gas": "0x30d40",
+    "maxFeePerGas": "0x8af56a60",
+    "maxPriorityFeePerGas": "0x77359400"
+  }
+}

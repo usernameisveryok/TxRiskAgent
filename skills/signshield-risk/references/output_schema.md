@@ -1,0 +1,72 @@
+# SignShield Output Schema
+
+The analyzer returns one JSON object per input transaction.
+
+```json
+{
+  "schemaVersion": "signshield-risk/v0.2",
+  "inputRef": "path-or-id",
+  "verdict": {
+    "riskLevel": "LOW | MEDIUM | HIGH | CRITICAL | UNSUPPORTED",
+    "score": 0,
+    "confidence": "LOW | MEDIUM | HIGH",
+    "recommendedAction": "CONTINUE | CONTINUE_WITH_CAUTION | REDUCE_ALLOWANCE | USE_BURNER | REJECT | UNSUPPORTED"
+  },
+  "summary": "Plain-language user-facing summary.",
+  "intent": {
+    "category": "NATIVE_TRANSFER | ERC20_APPROVAL | NFT_APPROVAL | TOKEN_TRANSFER | MULTICALL | UNKNOWN_CONTRACT | UNSUPPORTED_CHAIN",
+    "description": "Plain-language description of what the transaction appears to do.",
+    "decodedFunction": "approve(address,uint256)"
+  },
+  "assetImpact": [
+    {
+      "type": "ERC20_APPROVAL | NATIVE_TRANSFER | TOKEN_TRANSFER | NFT_OPERATOR_APPROVAL",
+      "asset": {"chainId": "eip155:1", "address": "0x...", "symbol": "ETH", "decimals": 18},
+      "amount": {"raw": "0x0", "formatted": "0.0", "isUnlimited": false},
+      "from": "0x...",
+      "to": "0x...",
+      "spender": "0x..."
+    }
+  ],
+  "riskFactors": [
+    {
+      "id": "unlimited_erc20_approval",
+      "domain": "technical | scam_phishing | compliance | uncertainty",
+      "severity": "LOW | MEDIUM | HIGH | CRITICAL",
+      "score": 30,
+      "title": "Short title",
+      "description": "Specific evidence-based explanation.",
+      "evidence": {}
+    }
+  ],
+  "evidence": {
+    "calldata": {},
+    "simulation": {},
+    "contractReputation": {},
+    "threatIntel": {},
+    "limitations": []
+  },
+  "recommendation": "Plain-language next action."
+}
+```
+
+Risk level thresholds:
+
+- `LOW`: 0-24
+- `MEDIUM`: 25-49
+- `HIGH`: 50-74
+- `CRITICAL`: 75+
+
+Confidence should reflect fact quality. Deterministic decode plus direct fixtures can be `HIGH`; decode without simulation is usually `MEDIUM`; unknown selectors without simulation are `LOW`.
+
+## Live Adapter Statuses
+
+Adapters must not throw into the top-level CLI for expected integration problems. Use structured statuses:
+
+- `ok`: Provider returned parseable data.
+- `no_match` / `no_matches`: Provider returned data but no risk signal.
+- `not_found`: Lookup completed without a selector or contract match.
+- `config_missing`: Required API key/base URL/account setting is absent.
+- `unsupported_chain`: Provider does not support the chain.
+- `error`: HTTP, auth, rate-limit, or parse failure. Include a short `error`.
+- `not_run`: Adapter was disabled because `--live` was not used.

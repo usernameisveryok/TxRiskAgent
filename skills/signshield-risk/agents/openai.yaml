@@ -1,0 +1,4 @@
+interface:
+  display_name: "SignShield Risk"
+  short_description: "EVM pre-signature transaction risk analysis"
+  default_prompt: "Use $signshield-risk to analyze EVM transaction JSON before signing and produce a structured risk report."

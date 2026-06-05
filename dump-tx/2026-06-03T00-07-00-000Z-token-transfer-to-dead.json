@@ -1,0 +1,14 @@
+{
+  "chainId": "eip155:10",
+  "transactionOrigin": "https://bridge-refund.invalid",
+  "transaction": {
+    "from": "0xb7c360aaa4c2b9f727ff934baa6ba300ccc0f284",
+    "to": "0x1000000000000000000000000000000000000004",
+    "data": "0xa9059cbb000000000000000000000000000000000000000000000000000000000000dead0000000000000000000000000000000000000000000000015af1d78b58c40000",
+    "value": "0x0",
+    "type": "0x2",
+    "gas": "0x30d40",
+    "maxFeePerGas": "0x8af56a60",
+    "maxPriorityFeePerGas": "0x77359400"
+  }
+}

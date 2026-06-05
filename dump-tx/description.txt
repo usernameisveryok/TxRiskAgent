@@ -1,0 +1,19 @@
+2026-06-02T09-47-56-133Z-a850707e-9421-4cd9-a5e6-6fa636023746.json: 在BSC链，授权10 USDT给Atlantis Loans借贷平台（0xfEAd9619e88464e5aD1Ea9Df458dcc147F03ea0C）。该Proxy已被治理攻击篡改为恶意合约。
+2026-06-02T11-14-54-807Z-20571aef-0d9a-489d-b3e1-3b4aaf982fbd.json：在ETH链发送0.1 ETH到0xdead地址。
+以下 2026-06-03 样例均为离线合成攻击实验数据，使用合成 token、合成攻击地址和 .invalid origin；不要广播，不要与其中地址或合约做真实交互。
+2026-06-03T00-01-00-000Z-erc20-unlimited-approval-phishing.json：在ETH链，假领取页面诱导用户对合成 LAB-USDC 执行 approve(spender, uint256.max)，覆盖 ERC20 无限授权钓鱼。
+2026-06-03T00-02-00-000Z-erc20-large-approval-fake-swap.json：在Base链，假迁移/假 swap 页面请求对合成 LAB-USDbC 做超大额度 approve，覆盖非无限但明显过大的 ERC20 授权。
+2026-06-03T00-03-00-000Z-eip2612-permit-unlimited-drainer.json：在ETH链，gasless claim 页面提交 EIP-2612 permit(owner, spender, value, deadline, v, r, s)，将合成 LAB-DAI 授权给合成 drainer，覆盖 Permit 签名式授权滥用。
+2026-06-03T00-04-00-000Z-nft-setapprovalforall-fake-airdrop.json：在Polygon链，假 NFT 空投页面调用 setApprovalForAll(operator, true)，覆盖 NFT collection 全集授权 drainer。
+2026-06-03T00-05-00-000Z-nft-setapprovalforall-revoke-benign.json：在ETH链，撤销 setApprovalForAll(operator, false)，作为 NFT 授权分支的低风险/撤销对照样例。
+2026-06-03T00-06-00-000Z-token-transfer-to-drainer.json：在ETH链，假客服/退款页面诱导用户直接 transfer 合成 LAB-WETH 到合成资金归集地址，覆盖直接代币转出。
+2026-06-03T00-07-00-000Z-token-transfer-to-dead.json：在Optimism链，假 bridge refund 页面诱导用户 transfer 合成 LAB-OP 到 dead 地址，覆盖代币销毁/不可找回接收方。
+2026-06-03T00-08-00-000Z-transferfrom-prior-allowance-drain.json：在ETH链，假 allowance check 页面调用 transferFrom(from=user, to=drainer, amount)，模拟复用既有授权转走合成 LAB-USDC。
+2026-06-03T00-09-00-000Z-multicall-hidden-approval-and-transfer.json：在ETH链，multicall(bytes[]) 内嵌 approve(uint256.max) 与 transfer，覆盖聚合调用隐藏多步资产/权限变化。
+2026-06-03T00-10-00-000Z-multicall-deadline-fake-migration.json：在Base链，multicall(uint256,bytes[]) 带 deadline，内嵌无限 approve 与转账，覆盖迁移类 bundle 风险。
+2026-06-03T00-11-00-000Z-universal-router-execute-permit2-style-drain.json：在ETH链，Universal Router 风格 execute(bytes,bytes[],uint256) 打包合成授权和转账，覆盖 Permit2/路由器式签名或聚合风险的预签名入口。
+2026-06-03T00-12-00-000Z-unknown-claim-rewards-selector.json：在ETH链，假 airdrop claim 使用未知 selector 和不透明参数，覆盖未知合约领取入口。
+2026-06-03T00-13-00-000Z-flashloan-oracle-attack-helper-unknown.json：在Arbitrum链，合成治理/闪电贷/预言机攻击 helper 合约入口，使用未知 selector，覆盖协议侧复杂攻击在钱包预签名阶段只能落入 UNKNOWN_CONTRACT 的场景。
+2026-06-03T00-14-00-000Z-native-address-poisoning-lookalike.json：在ETH链，发送0.1 ETH到与用户地址前缀高度相似的合成地址，覆盖 address poisoning/剪贴板或历史记录误导类 native transfer。
+2026-06-03T00-15-00-000Z-native-transfer-to-synthetic-drainer.json：在Base链，假 support case 页面诱导发送0.5原生币到本地 fixture 标记的合成 drainer，覆盖普通 native transfer 到风险接收方。
+构造依据：Chainalysis approval phishing 与 crypto drainer 资料、Chainalysis address poisoning 资料、MetaMask signature phishing/security alerts、Uniswap Permit2 文档、EIP-2612 permit、EIP-721 setApprovalForAll、OpenZeppelin ERC20 approve/transferFrom 语义，以及常见 DeFi reentrancy/flash-loan/oracle/governance attack 分类。协议级攻击在预签名单笔交易里通常只能表现为未知合约或聚合调用入口，因此没有尝试复刻真实攻击合约或真实攻击地址。
