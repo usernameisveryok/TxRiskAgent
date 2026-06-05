@@ -6,7 +6,6 @@ import os
 from pathlib import Path
 
 from .analyzer import analyze_transaction
-from .env import load_dotenv
 from .token_metadata import TokenMetadataResolver
 from .types import AnalysisOptions
 
@@ -29,7 +28,6 @@ def write_result(result: dict, output_dir: Path | None, source: Path) -> None:
 
 
 def main() -> int:
-    load_dotenv()
     parser = argparse.ArgumentParser(description="Analyze EVM transaction JSON and produce SignShield risk JSON.")
     parser.add_argument("input", type=Path, help="Input JSON file or directory containing JSON files.")
     parser.add_argument("--output", type=Path, help="Directory for .risk.json outputs. Defaults to stdout.")

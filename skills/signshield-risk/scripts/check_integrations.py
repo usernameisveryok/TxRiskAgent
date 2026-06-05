@@ -13,12 +13,10 @@ sys.path.insert(0, str(SCRIPT_DIR))
 from signshield.adapters.contract_reputation import CompositeContractReputationAdapter  # noqa: E402
 from signshield.adapters.simulation import TenderlySimulationAdapter  # noqa: E402
 from signshield.adapters.threat_intel import CompositeThreatIntelAdapter  # noqa: E402
-from signshield.env import load_dotenv  # noqa: E402
 from signshield.rpc import check_public_rpc_endpoints  # noqa: E402
 
 
 def main() -> int:
-    load_dotenv()
     etherscan_key = os.getenv("ETHERSCAN_API_KEY")
     contract_adapter = CompositeContractReputationAdapter(etherscan_key, os.getenv("BLOCKSCOUT_BASE_URL"))
     simulation_adapter = TenderlySimulationAdapter(

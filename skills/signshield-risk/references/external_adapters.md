@@ -14,9 +14,7 @@ Live mode enables all configured adapters:
 uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx --live --output output/risk-reports-live
 ```
 
-Local credentials can be stored in a git-ignored `.env` file copied from `.env.example`.
-The CLI and integration check load `.env` automatically before reading provider environment variables.
-Exported environment variables and explicit CLI flags still take precedence.
+Live credentials are read from the current process environment or explicit CLI flags. Do not commit provider tokens.
 
 ERC20 subagent modes:
 
@@ -61,7 +59,7 @@ Provider behavior:
 - Parses `transaction.transaction_info.asset_changes`, `balance_changes`, logs, revert/error fields, gas used, and call-trace presence.
 - Normalized facts are stored under `evidence.simulation.facts` as `asset_change`, `balance_change`, `approval_change`, `revert_or_error`, or `call_trace_present`.
 - Rules use wallet-relative facts to flag simulated wallet asset outflows and approval changes.
-- Use `python skills/signshield-risk/scripts/check_integrations.py` for a local Tenderly smoke check when `.env` is configured.
+- Use `TENDERLY_ACCOUNT_SLUG=... TENDERLY_PROJECT_SLUG=... TENDERLY_ACCESS_KEY=... python skills/signshield-risk/scripts/check_integrations.py` for a local Tenderly smoke check.
 
 ## 3. Etherscan / Blockscout Contract Adapter
 
