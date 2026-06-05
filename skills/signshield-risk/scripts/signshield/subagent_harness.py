@@ -102,8 +102,9 @@ def apply_subagent_recommended_factors(result: dict[str, Any], factors: list[dic
                 str(factor.get("id") or assessment["id"]),
                 str(factor.get("domain") or "uncertainty"),
                 str(factor.get("severity") or assessment["severity"]),
-                int(factor.get("score") or 0),
+                min(max(int(factor.get("score") or 0), 0), 30),
                 str(factor.get("title") or "Subagent 风险判断"),
                 str(factor.get("description") or assessment["conclusion"]),
                 factor.get("evidence") if isinstance(factor.get("evidence"), dict) else {"assessmentId": assessment["id"]},
+                source_type="subagent",
             )

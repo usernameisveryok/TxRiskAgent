@@ -139,19 +139,34 @@ def analyze_transaction(
     factors = rule_result.risk_factors
     limitations.extend(rule_result.limitations)
 
-    if erc20_profile is not None:
+    subagent_result: dict[str, Any] | None = None
+    if should_run_subagent(options.subagent_mode, category, factors, erc20_profile, simulation, origin):
+        pre_subagent_verdict = build_decision(
+            category=category,
+            decoded=decoded,
+            simulation=simulation,
+            contract_reputation=contract_rep,
+            threat_intel=threat_intel,
+            factors=factors,
+            evidence_quality=evidence.evidence_quality,
+            mode=mode,
+        )
         subagent_context = build_subagent_context(
             chain=chain_evidence,
             token_address=erc20_token_address,
             origin=origin,
             intent=intent,
             decoded=decoded,
-            token_profile=erc20_profile,
+            token_profile=erc20_profile or {},
             bytecode_scan=bytecode_scan,
             contract_reputation=contract_rep,
             threat_intel=threat_intel,
             simulation=simulation,
             deterministic_risk_factors=factors,
+            provider_health=evidence.provider_health,
+            evidence_quality=evidence.evidence_quality,
+            verdict_pre_subagent=pre_subagent_verdict,
+            tasks=subagent_tasks(category, erc20_profile, simulation, origin),
         )
         subagent_result = run_subagent_harness(
             options.subagent_mode,
@@ -159,8 +174,9 @@ def analyze_transaction(
             command=options.subagent_command,
             client=subagent_client,
         )
-        erc20_profile["subagentAssessments"] = subagent_result.get("assessments", [])
-        erc20_profile["subagent"] = subagent_result
+        if erc20_profile is not None:
+            erc20_profile["subagentAssessments"] = subagent_result.get("assessments", [])
+            erc20_profile["subagent"] = subagent_result
         apply_subagent_recommended_factors(subagent_result, factors)
         if subagent_result.get("limitations"):
             limitations.extend(subagent_result["limitations"])
@@ -197,6 +213,7 @@ def analyze_transaction(
             "contractReputation": contract_rep,
             "threatIntel": threat_intel,
             "erc20TokenRisk": erc20_profile,
+            "subagent": subagent_result,
             "providerHealth": evidence.provider_health,
             "evidenceQuality": evidence.evidence_quality,
             "limitations": limitations,
@@ -259,6 +276,40 @@ def erc20_token_target(category: str, to_addr: str | None) -> str | None:
     if category in {"ERC20_APPROVAL", "TOKEN_TRANSFER"}:
         return to_addr
     return None
+
+
+def should_run_subagent(
+    subagent_mode: str,
+    category: str,
+    factors: list[dict[str, Any]],
+    erc20_profile: dict[str, Any] | None,
+    simulation: dict[str, Any],
+    origin: str | None,
+) -> bool:
+    if subagent_mode == "off":
+        return False
+    if erc20_profile is not None:
+        return True
+    if category in {"MULTICALL", "UNKNOWN_CONTRACT"}:
+        return True
+    if simulation.get("status") == "ok" and simulation.get("facts"):
+        return True
+    if origin and any(factor.get("id") in {"large_or_unbounded_allowance", "nft_collection_wide_approval"} for factor in factors):
+        return True
+    return False
+
+
+def subagent_tasks(category: str, erc20_profile: dict[str, Any] | None, simulation: dict[str, Any], origin: str | None) -> list[str]:
+    tasks = []
+    if erc20_profile is not None:
+        tasks.extend(["source_semantic_privilege_review", "complex_honeypot_soft_rug_review"])
+    if origin:
+        tasks.append("protocol_domain_mismatch_review")
+    if simulation.get("status") == "ok" and simulation.get("facts"):
+        tasks.append("simulation_trace_attack_path_review")
+    if category in {"MULTICALL", "UNKNOWN_CONTRACT"}:
+        tasks.append("unknown_or_multicall_intent_review")
+    return tasks or ["protocol_domain_mismatch_review"]
 
 
 def collect_addresses(*values: Any) -> list[str]:

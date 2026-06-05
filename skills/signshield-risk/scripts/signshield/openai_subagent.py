@@ -68,6 +68,11 @@ Focus on:
 1. source_semantic_privilege_review
 2. complex_honeypot_soft_rug_review
 3. protocol_domain_mismatch_review
+4. simulation_trace_attack_path_review
+5. unknown_or_multicall_intent_review
+
+Only perform tasks listed in context.tasks. Use evidenceRefs as dot paths into the supplied context, such as tokenProfile.tokenSecurity.taxMutable, contractReputation.etherscan.proxy, simulation.facts.0, deterministicRiskFactors.0, providerHealth.0, or verdictPreSubagent.evidenceGate.requiresLiveEvidence.
+Recommended risk factors are advisory. Do not recommend lowering risk or removing deterministic factors.
 
 Return only the structured JSON object requested by the response schema."""
 
@@ -99,7 +104,7 @@ class OpenAISubagentClient:
             return _error(f"OpenAI subagent request failed: {exc}")
         parsed = _parse_model_result(raw)
         validated = parse_subagent_response(parsed)
-        return enforce_evidence_refs(validated)
+        return enforce_evidence_refs(validated, context)
 
     def _request(self, context: dict[str, Any]) -> Any:
         client = self.client or self._build_client()
@@ -140,7 +145,7 @@ def run_openai_subagent(context: dict[str, Any], *, client: OpenAISubagentClient
     return (client or OpenAISubagentClient()).assess(context)
 
 
-def enforce_evidence_refs(result: dict[str, Any]) -> dict[str, Any]:
+def enforce_evidence_refs(result: dict[str, Any], context: dict[str, Any] | None = None) -> dict[str, Any]:
     if result.get("status") != "ok":
         return result
     limitations = list(result.get("limitations", []))
@@ -148,6 +153,10 @@ def enforce_evidence_refs(result: dict[str, Any]) -> dict[str, Any]:
     for assessment in result.get("assessments", []):
         refs = [ref for ref in assessment.get("evidenceRefs", []) if isinstance(ref, str) and ref.strip()]
         refs = refs[:20]
+        invalid_refs = [ref for ref in refs if context is not None and not evidence_ref_exists(context, ref)]
+        if invalid_refs:
+            limitations.append(f"Dropped {assessment.get('id')}: evidenceRefs not found: {', '.join(invalid_refs[:5])}.")
+            continue
         severity = assessment.get("severity")
         if severity in {"HIGH", "CRITICAL"} and not refs:
             limitations.append(f"Dropped {assessment.get('id')}: HIGH/CRITICAL assessment requires evidenceRefs.")
@@ -155,6 +164,23 @@ def enforce_evidence_refs(result: dict[str, Any]) -> dict[str, Any]:
         assessment = {**assessment, "evidenceRefs": refs}
         assessments.append(assessment)
     return {"status": "ok", "assessments": assessments, "limitations": limitations}
+
+
+def evidence_ref_exists(context: dict[str, Any], ref: str) -> bool:
+    current: Any = context
+    for part in ref.split("."):
+        if isinstance(current, dict):
+            if part not in current:
+                return False
+            current = current[part]
+        elif isinstance(current, list):
+            try:
+                current = current[int(part)]
+            except (ValueError, IndexError):
+                return False
+        else:
+            return False
+    return True
 
 
 def _parse_model_result(value: Any) -> Any:

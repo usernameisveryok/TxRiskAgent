@@ -6,7 +6,7 @@ import subprocess
 import sys
 from types import SimpleNamespace
 
-from signshield.openai_subagent import OpenAISubagentClient, enforce_evidence_refs
+from signshield.openai_subagent import OpenAISubagentClient, enforce_evidence_refs, evidence_ref_exists
 from signshield.subagent_harness import parse_subagent_response
 
 
@@ -41,7 +41,9 @@ def test_openai_subagent_accepts_structured_result_from_fake_client() -> None:
         "limitations": [],
     }
     fake = FakeOpenAI(payload)
-    result = OpenAISubagentClient(api_key="test-key", client=fake).assess({"schemaVersion": "signshield-subagent-context/v0.1"})
+    result = OpenAISubagentClient(api_key="test-key", client=fake).assess(
+        {"schemaVersion": "signshield-subagent-context/v0.1", "tokenProfile": {"tokenSecurity": {"taxMutable": True}}}
+    )
     assert parse_subagent_response(result)["status"] == "ok"
     assert result["assessments"][0]["id"] == "source_semantic_privilege_review"
     assert fake.responses.calls[0]["model"] == "gpt-5.5"
@@ -81,6 +83,34 @@ def test_high_severity_assessment_without_evidence_refs_is_dropped() -> None:
     )
     assert [item["id"] for item in result["assessments"]] == ["low_note"]
     assert "requires evidenceRefs" in result["limitations"][0]
+
+
+def test_evidence_refs_must_resolve_when_context_is_supplied() -> None:
+    result = enforce_evidence_refs(
+        {
+            "status": "ok",
+            "assessments": [
+                {
+                    "id": "bad_ref",
+                    "conclusion": "Reference is invented.",
+                    "severity": "HIGH",
+                    "confidence": "MEDIUM",
+                    "evidenceRefs": ["tokenProfile.tokenSecurity.missing"],
+                    "recommendedRiskFactors": [],
+                }
+            ],
+            "limitations": [],
+        },
+        {"tokenProfile": {"tokenSecurity": {"taxMutable": True}}},
+    )
+    assert result["assessments"] == []
+    assert "evidenceRefs not found" in result["limitations"][0]
+
+
+def test_evidence_ref_exists_supports_dicts_and_lists() -> None:
+    context = {"simulation": {"facts": [{"type": "asset_changes"}]}}
+    assert evidence_ref_exists(context, "simulation.facts.0.type") is True
+    assert evidence_ref_exists(context, "simulation.facts.1.type") is False
 
 
 def test_openai_subagent_command_wrapper_reads_stdin_and_writes_json_without_key() -> None:
