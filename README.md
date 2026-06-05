@@ -83,6 +83,15 @@ Subagent dry-run context:
 uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx --subagent dry-run --output output/risk-reports-subagent-context
 ```
 
+OpenAI subagent semantic review:
+
+```bash
+source .env
+uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx/2026-06-03T00-18-00-000Z-erc20-high-sell-tax-token.json --subagent live --subagent-command "uv run python skills/signshield-risk/scripts/openai_subagent.py"
+```
+
+`.env` is gitignored. Do not commit local API keys or provider tokens.
+
 ## Live Adapters
 
 The live mode supports:
@@ -104,6 +113,8 @@ export ETHERSCAN_API_KEY=...
 export BLOCKSCOUT_BASE_URL=...
 export SIGNSSHIELD_RPC_URL=...
 export SIGNSSHIELD_SUBAGENT_COMMAND=...
+export SIGNSSHIELD_OPENAI_MODEL=gpt-5.5
+export SIGNSSHIELD_OPENAI_REASONING_EFFORT=medium
 ```
 
 Missing credentials are reported in `evidence.limitations`; they do not abort analysis.
