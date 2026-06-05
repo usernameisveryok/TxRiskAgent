@@ -67,6 +67,40 @@ def test_goplus_flags_map_to_certik_schema() -> None:
     assert profile["marketControls"]["sellTaxBps"] == 1800
 
 
+def test_etherscan_security_signals_map_to_token_risk_profile() -> None:
+    profile = build_erc20_token_risk_profile(
+        1,
+        "0x9999999999999999999999999999999999999999",
+        token_metadata={},
+        threat_intel={},
+        bytecode_scan={},
+        contract_reputation={
+            "etherscan": {
+                "status": "ok",
+                "sourceVerified": True,
+                "proxy": False,
+                "implementationVerified": None,
+                "deployer": "0x00000000000000000000000000000000000000aa",
+                "deployedAt": "2026-06-01T00:00:00Z",
+                "ageDays": 4,
+                "securitySignals": {
+                    "mintable": {"present": True},
+                    "blacklistEnabled": {"present": True},
+                    "taxMutable": {"present": True},
+                    "balanceMutable": {"present": True},
+                    "transferPausable": {"present": True},
+                },
+            }
+        },
+    )
+    assert profile["tokenSecurity"]["sourceVerified"] is True
+    assert profile["tokenSecurity"]["mintable"] is True
+    assert profile["tokenSecurity"]["blacklistEnabled"] is True
+    assert profile["tokenSecurity"]["taxMutable"] is True
+    assert profile["tokenSecurity"]["balanceMutable"] is True
+    assert profile["deployment"]["deployer"] == "0x00000000000000000000000000000000000000aa"
+
+
 def test_erc20_scoring_combination_rules() -> None:
     profile = {
         "tokenSecurity": {

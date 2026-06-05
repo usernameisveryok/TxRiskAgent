@@ -40,6 +40,12 @@ Public RPC availability can be checked independently:
 uv run python skills/signshield-risk/scripts/check_public_rpc.py > output/public-rpc-check.json
 ```
 
+Etherscan V2 enrichment uses only runtime configuration. Do not write API keys into files:
+
+```bash
+ETHERSCAN_API_KEY=... uv run python skills/signshield-risk/scripts/check_etherscan.py
+```
+
 ERC20 semantic review can be enabled separately:
 
 ```bash
@@ -53,7 +59,7 @@ uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx --subagen
    Accept either `chainId` plus `transaction`, or a flat transaction-like object. Convert `eip155:<id>` into an EVM chain id. Validate addresses and hex values.
 
 2. Build the fact layer.
-   Decode calldata selectors and standard ABI parameters. Extract native value, token/spender/operator/amount, and origin. For ERC20 interactions, build `evidence.erc20TokenRisk` from token metadata, token security facts, contract reputation, bytecode scan signals, holder/liquidity facts, and optional subagent assessments. In live mode, enrich facts through Sourcify/OpenChain + 4byte, Tenderly, Etherscan/Blockscout, GoPlus, and MetaMask eth-phishing-detect.
+   Decode calldata selectors and standard ABI parameters. Extract native value, token/spender/operator/amount, and origin. For ERC20 interactions, build `evidence.erc20TokenRisk` from token metadata, token security facts, contract reputation, bytecode scan signals, holder/liquidity facts, and optional subagent assessments. In live mode, enrich facts through Sourcify/OpenChain + 4byte, Tenderly, Etherscan V2/Blockscout, GoPlus, and MetaMask eth-phishing-detect. Etherscan facts should remain summarized: include source/ABI/proxy/deployment/account/token-transfer/security-signal fields, not full source code.
 
 3. Classify intent.
    Route to one primary category: `NATIVE_TRANSFER`, `ERC20_APPROVAL`, `NFT_APPROVAL`, `TOKEN_TRANSFER`, `MULTICALL`, `UNKNOWN_CONTRACT`, or `UNSUPPORTED_CHAIN`.

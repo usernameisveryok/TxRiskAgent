@@ -116,15 +116,27 @@ class TokenMetadataResolver:
         for key in ("etherscan", "blockscout"):
             source = contract_reputation.get(key)
             if isinstance(source, dict) and source.get("status") == "ok":
+                token_info = source.get("token", {}).get("info") if isinstance(source.get("token"), dict) else None
+                if isinstance(token_info, dict):
+                    return {
+                        "name": token_info.get("tokenName") or source.get("contractName"),
+                        "symbol": token_info.get("symbol"),
+                        "decimals": _decode_uint(token_info.get("divisor")),
+                        "totalSupplyRaw": _decode_uint(token_info.get("totalSupply")),
+                    }
                 return {"name": source.get("contractName")}
         return {}
 
 
 def _decode_uint(raw: Any) -> int | None:
-    if not isinstance(raw, str) or not raw.startswith("0x"):
+    if isinstance(raw, int):
+        return raw
+    if not isinstance(raw, str):
         return None
     try:
-        return int(raw, 16)
+        if raw.startswith("0x"):
+            return int(raw, 16)
+        return int(raw)
     except ValueError:
         return None
 

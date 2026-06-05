@@ -389,6 +389,29 @@ def apply_contract_reputation_rules(contract_rep: dict[str, Any], factors: list[
             add_factor(factors, f"{source_key}_source_unverified", "technical", "MEDIUM", 20, "合约源码未验证", f"{source_key} 未返回已验证源码。", {"provider": source_key})
         if source.get("proxy") and not source.get("implementation"):
             add_factor(factors, f"{source_key}_proxy_without_implementation", "technical", "HIGH", 25, "Proxy implementation 不明确", f"{source_key} 显示该合约是 proxy，但未返回 implementation。", {"provider": source_key})
+        if source.get("proxy") and source.get("implementationVerified") is False:
+            add_factor(factors, f"{source_key}_proxy_implementation_unverified", "technical", "HIGH", 35, "Proxy implementation 未验证", f"{source_key} 显示该合约是 proxy，且 implementation 未验证。", {"provider": source_key, "implementation": source.get("implementation")})
+        age_days = source.get("ageDays")
+        if isinstance(age_days, int) and age_days <= 7:
+            add_factor(factors, f"{source_key}_newly_deployed_contract", "uncertainty", "MEDIUM", 20, "合约部署时间很短", f"{source_key} 显示该合约部署不足 7 天，历史行为样本有限。", {"provider": source_key, "ageDays": age_days, "deployedAt": source.get("deployedAt")})
+        nametag = source.get("nametag") if isinstance(source.get("nametag"), dict) else {}
+        labels = [str(label).lower() for label in (nametag.get("labelsSlug") or nametag.get("labels") or [])]
+        label_text = " ".join(labels)
+        if any(marker in label_text for marker in ("phish", "hack", "scam", "drainer", "ofac", "sanction")):
+            add_factor(factors, f"{source_key}_address_security_label", "scam_phishing", "CRITICAL", 70, "Etherscan 地址标签命中安全风险", f"{source_key} nametag/label 显示该地址存在安全或合规风险。", {"provider": source_key, "nametag": nametag.get("nametag"), "labels": nametag.get("labels"), "labelsSlug": nametag.get("labelsSlug")})
+        security_signals = source.get("securitySignals") if isinstance(source.get("securitySignals"), dict) else {}
+        if _source_signal_present(security_signals, "selfdestructPresent"):
+            add_factor(factors, f"{source_key}_source_selfdestruct_signal", "technical", "HIGH", 40, "源码出现 selfdestruct 能力", f"{source_key} 已验证源码或 ABI 中出现 selfdestruct/suicide 风险信号。", {"provider": source_key})
+        if _source_signal_present(security_signals, "externalCallPresent") and source.get("sourceVerified") is False:
+            add_factor(factors, f"{source_key}_unverified_external_call_signal", "technical", "HIGH", 35, "未验证合约存在外部调用信号", f"{source_key} 显示合约未验证，且存在外部调用相关风险信号。", {"provider": source_key})
+        privileged = security_signals.get("privilegedFunctionNames")
+        if isinstance(privileged, list) and len(privileged) >= 5:
+            add_factor(factors, f"{source_key}_many_privileged_functions", "technical", "MEDIUM", 25, "合约包含多个特权函数", f"{source_key} ABI/source 显示该合约存在多个 owner/admin 风格的控制函数。", {"provider": source_key, "functions": privileged[:20]})
+
+
+def _source_signal_present(security_signals: dict[str, Any], key: str) -> bool:
+    signal = security_signals.get(key)
+    return isinstance(signal, dict) and bool(signal.get("present"))
 
 
 def apply_threat_intel_rules(threat_intel: dict[str, Any], factors: list[dict[str, Any]]) -> None:

@@ -6,6 +6,7 @@ from signshield.adapters.calldata_resolver import CombinedCalldataResolver, Four
 from signshield.adapters.contract_reputation import CompositeContractReputationAdapter
 from signshield.adapters.simulation import TenderlySimulationAdapter
 from signshield.adapters.threat_intel import CompositeThreatIntelAdapter
+from signshield.analyzer import apply_contract_reputation_rules
 
 
 class FakeClient:
@@ -96,6 +97,69 @@ def test_contract_reputation_recurses_into_unverified_implementation() -> None:
     result = adapter.inspect(1, "0x0000000000000000000000000000000000000001")
     assert result["etherscan"]["implementation"] == "0x00000000000000000000000000000000000000ab"
     assert result["etherscan"]["implementationVerified"] is False
+
+
+def test_etherscan_report_collects_security_and_deployment_facts() -> None:
+    class ActionClient(FakeClient):
+        def __init__(self) -> None:
+            super().__init__({})
+
+        def get_json(self, url: str, *, params: dict[str, Any] | None = None, headers: dict[str, str] | None = None) -> dict[str, Any]:
+            self.calls.append(("GET", url, params))
+            action = params["action"] if params else None
+            if action == "getsourcecode":
+                return {
+                    "status": "1",
+                    "message": "OK",
+                    "result": [
+                        {
+                            "SourceCode": "contract Risky { function pause() public {} function mint(address,uint256) public {} function selfdestructNow() public { selfdestruct(payable(msg.sender)); } }",
+                            "ABI": '[{"type":"function","name":"pause","inputs":[]},{"type":"function","name":"mint","inputs":[{"type":"address"},{"type":"uint256"}]}]',
+                            "ContractName": "Risky",
+                            "CompilerVersion": "v0.8.20",
+                            "OptimizationUsed": "1",
+                            "LicenseType": "MIT",
+                            "Proxy": "0",
+                            "Implementation": "",
+                            "SimilarMatch": "0x0000000000000000000000000000000000000002",
+                        }
+                    ],
+                }
+            if action == "getcontractcreation":
+                return {"status": "1", "message": "OK", "result": [{"contractCreator": "0x00000000000000000000000000000000000000aa", "txHash": "0xcreate"}]}
+            if action == "eth_getTransactionByHash":
+                return {"result": {"blockNumber": "0x10", "from": "0x00000000000000000000000000000000000000aa", "to": None, "value": "0x0", "gas": "0x5208", "gasPrice": "0x1"}}
+            if action == "eth_getBlockByNumber":
+                return {"result": {"timestamp": "0x5f5e100"}}
+            if action == "balance":
+                return {"status": "1", "message": "OK", "result": "123"}
+            if action == "txlist":
+                return {"status": "1", "message": "OK", "result": [{"hash": "0xtx", "timeStamp": "100000000"}]}
+            if action == "tokentx":
+                return {"status": "1", "message": "OK", "result": [{"hash": "0xtoken", "timeStamp": "100000001", "from": "0x00000000000000000000000000000000000000aa", "to": "0x00000000000000000000000000000000000000bb", "value": "5", "tokenSymbol": "RISK"}]}
+            if action in {"tokeninfo", "tokenholdercount"}:
+                return {"status": "0", "message": "NOTOK", "result": "Sorry, it looks like you are trying to access an API Pro endpoint. Contact us to upgrade to API Pro."}
+            if action == "getaddresstag":
+                return {"status": "1", "message": "OK", "result": [{"nametag": "Fake_Phishing", "labels": ["Phish / Hack"], "labels_slug": ["phish-hack"], "reputation": "2"}]}
+            return {}
+
+    result = CompositeContractReputationAdapter("key", None, client=ActionClient()).inspect(1, "0x0000000000000000000000000000000000000001")
+    etherscan = result["etherscan"]
+    assert etherscan["sourceVerified"] is True
+    assert etherscan["deployer"] == "0x00000000000000000000000000000000000000aa"
+    assert etherscan["deployedAt"] == "1973-03-03T09:46:40Z"
+    assert etherscan["abiSummary"]["functionCount"] == 2
+    assert etherscan["securitySignals"]["mintable"]["present"] is True
+    assert etherscan["securitySignals"]["transferPausable"]["present"] is True
+    assert etherscan["securitySignals"]["selfdestructPresent"]["present"] is True
+    assert etherscan["token"]["recentTransfers"][0]["tokenSymbol"] == "RISK"
+    assert etherscan["providerLimitations"]
+
+    factors: list[dict[str, Any]] = []
+    apply_contract_reputation_rules(result, factors)
+    ids = {factor["id"] for factor in factors}
+    assert "etherscan_address_security_label" in ids
+    assert "etherscan_source_selfdestruct_signal" in ids
 
 
 def test_threat_intel_parses_goplus_and_metamask() -> None:

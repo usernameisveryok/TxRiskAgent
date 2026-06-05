@@ -60,6 +60,7 @@ Provider behavior:
 Implementation:
 
 - `signshield.adapters.contract_reputation.CompositeContractReputationAdapter`
+- `skills/signshield-risk/scripts/check_etherscan.py`
 
 Environment variables:
 
@@ -68,10 +69,20 @@ Environment variables:
 
 Provider behavior:
 
-- Etherscan uses v2 `contract/getsourcecode` with `chainid`.
+- Etherscan uses V2 `https://api.etherscan.io/v2/api` with `chainid`.
+- `getsourcecode` supplies source verification, ABI summary, compiler/license metadata, proxy and implementation facts, and lightweight source/ABI security signals. Full source code is not stored in output reports.
+- `getcontractcreation`, `proxy/eth_getTransactionByHash`, and `proxy/eth_getBlockByNumber` supply deployer, creation tx, deployment timestamp, and age.
+- `account/balance`, `account/txlist`, and `account/tokentx` supply account age/activity and recent token-transfer facts.
+- Token and nametag endpoints are attempted as best-effort. Pro-only or unavailable endpoints are recorded under `providerLimitations` and must not fail analysis.
 - Blockscout uses `/api/v2/smart-contracts/{address}`.
 - Missing settings produce provider-specific `config_missing` statuses.
 - Parsed facts are stored under `evidence.contractReputation`.
+
+Key check:
+
+```bash
+ETHERSCAN_API_KEY=... uv run python skills/signshield-risk/scripts/check_etherscan.py
+```
 
 ## 4. GoPlus Threat Intel Adapter
 

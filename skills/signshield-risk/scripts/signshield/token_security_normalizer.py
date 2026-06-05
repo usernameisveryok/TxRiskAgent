@@ -96,6 +96,9 @@ def _merge_contract_reputation(profile: dict[str, Any], contract_reputation: dic
         _set_if_missing(profile["deployment"], "deployedAt", source.get("deployedAt"))
         _set_if_missing(profile["deployment"], "ageDays", source.get("ageDays"))
         _set_if_missing(profile["deployment"], "owner", source.get("owner"))
+        security_signals = source.get("securitySignals")
+        if isinstance(security_signals, dict):
+            _merge_security_signals(profile, security_signals)
 
 
 def _merge_goplus(profile: dict[str, Any], token_address: str | None, threat_intel: dict[str, Any] | None) -> None:
@@ -157,6 +160,27 @@ def _merge_bytecode(profile: dict[str, Any], bytecode_scan: dict[str, Any] | Non
     }
     for source_key, (section, target_key) in signal_mapping.items():
         if signals.get(source_key):
+            profile[section][target_key] = True
+
+
+def _merge_security_signals(profile: dict[str, Any], security_signals: dict[str, Any]) -> None:
+    signal_mapping = {
+        "selfdestructPresent": ("tokenSecurity", "selfdestructPresent"),
+        "externalCallPresent": ("tokenSecurity", "externalCallPresent"),
+        "mintable": ("tokenSecurity", "mintable"),
+        "blacklistEnabled": ("tokenSecurity", "blacklistEnabled"),
+        "whitelistEnabled": ("tokenSecurity", "whitelistEnabled"),
+        "taxMutable": ("tokenSecurity", "taxMutable"),
+        "transferPausable": ("tokenSecurity", "transferPausable"),
+        "transferCooldown": ("tokenSecurity", "transferCooldown"),
+        "withdrawFunction": ("tokenSecurity", "withdrawFunction"),
+        "balanceMutable": ("tokenSecurity", "balanceMutable"),
+        "canRegainOwnership": ("tokenSecurity", "canRegainOwnership"),
+        "antiWhaleEnabled": ("marketControls", "antiWhaleEnabled"),
+    }
+    for source_key, (section, target_key) in signal_mapping.items():
+        signal = security_signals.get(source_key)
+        if isinstance(signal, dict) and signal.get("present"):
             profile[section][target_key] = True
 
 
