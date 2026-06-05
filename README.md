@@ -77,11 +77,12 @@ Check live integration health without writing credentials to disk:
 ETHERSCAN_API_KEY=... uv run python skills/signshield-risk/scripts/check_integrations.py
 ```
 
-Tenderly smoke check with temporary environment variables:
+Tenderly smoke check with local `.env`:
 
 ```bash
-TENDERLY_ACCOUNT_SLUG=... TENDERLY_PROJECT_SLUG=... TENDERLY_ACCESS_KEY=... python skills/signshield-risk/scripts/check_integrations.py
-TENDERLY_ACCOUNT_SLUG=... TENDERLY_PROJECT_SLUG=... TENDERLY_ACCESS_KEY=... python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx/2026-06-02T09-47-56-133Z-a850707e-9421-4cd9-a5e6-6fa636023746.json --live
+source .env
+python skills/signshield-risk/scripts/check_integrations.py
+python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx/<file>.json --live
 ```
 
 Subagent dry-run context:
@@ -93,10 +94,11 @@ uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx --subagen
 OpenAI subagent semantic review:
 
 ```bash
-OPENAI_API_KEY=... uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx/2026-06-03T00-18-00-000Z-erc20-high-sell-tax-token.json --subagent live --subagent-command "uv run python skills/signshield-risk/scripts/openai_subagent.py"
+source .env
+uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx/2026-06-03T00-18-00-000Z-erc20-high-sell-tax-token.json --subagent live --subagent-command "uv run python skills/signshield-risk/scripts/openai_subagent.py"
 ```
 
-Do not commit local API keys or provider tokens.
+`.env` is gitignored. Do not commit local API keys or provider tokens.
 
 ## Live Adapters
 

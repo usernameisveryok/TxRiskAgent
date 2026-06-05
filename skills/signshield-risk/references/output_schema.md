@@ -10,14 +10,7 @@ The analyzer returns one JSON object per input transaction.
     "riskLevel": "LOW | MEDIUM | HIGH | CRITICAL | UNSUPPORTED",
     "score": 0,
     "confidence": "LOW | MEDIUM | HIGH",
-    "recommendedAction": "CONTINUE | CONTINUE_WITH_CAUTION | REDUCE_ALLOWANCE | USE_BURNER | REVIEW_OR_REJECT | REJECT | UNSUPPORTED",
-    "evidenceGate": {
-      "guarded": false,
-      "requiresLiveEvidence": false,
-      "hasSimulation": false,
-      "hasContractReputation": false,
-      "reasons": []
-    }
+    "recommendedAction": "CONTINUE | CONTINUE_WITH_CAUTION | REDUCE_ALLOWANCE | USE_BURNER | REJECT | UNSUPPORTED"
   },
   "summary": "Plain-language user-facing summary.",
   "intent": {
