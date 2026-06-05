@@ -16,6 +16,7 @@ class ChainRef:
 @dataclass(frozen=True)
 class AnalysisOptions:
     live: bool = False
+    mode: str | None = None
     timeout: float = 8.0
     tenderly_account: str | None = None
     tenderly_project: str | None = None
@@ -28,6 +29,7 @@ class AnalysisOptions:
     metamask_config_url: str = "https://raw.githubusercontent.com/MetaMask/eth-phishing-detect/main/src/config.json"
     subagent_mode: str = "off"
     subagent_command: str | None = None
+    allow_fixture_risk: bool = True
 
 
 class CalldataResolver(Protocol):

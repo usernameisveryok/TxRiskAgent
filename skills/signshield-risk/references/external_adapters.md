@@ -170,7 +170,7 @@ Implementation:
 Provider behavior:
 
 - Token metadata uses local fixtures first, optional/selected RPC second, and explorer contract names as fallback.
-- GoPlus raw token reports are normalized into CertiK-style fields when available.
+- GoPlus raw token reports are normalized into the ERC20 token-risk profile fields when available.
 - Bytecode scanning is lightweight and only marks selector/opcode presence. It does not prove source-level semantics.
 - Missing holder/LP/deployment fields remain `null`.
 

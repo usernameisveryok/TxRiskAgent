@@ -32,6 +32,7 @@ def main() -> int:
     parser.add_argument("input", type=Path, help="Input JSON file or directory containing JSON files.")
     parser.add_argument("--output", type=Path, help="Directory for .risk.json outputs. Defaults to stdout.")
     parser.add_argument("--live", action="store_true", help="Enable live external adapters where configured.")
+    parser.add_argument("--mode", choices=["offline", "live-best-effort", "production"], help="Runtime mode. --live maps to live-best-effort when omitted.")
     parser.add_argument("--tenderly-account", default=os.getenv("TENDERLY_ACCOUNT_SLUG"))
     parser.add_argument("--tenderly-project", default=os.getenv("TENDERLY_PROJECT_SLUG"))
     parser.add_argument("--tenderly-access-key", default=os.getenv("TENDERLY_ACCESS_KEY"))
@@ -43,10 +44,13 @@ def main() -> int:
     parser.add_argument("--metamask-config-url", default=os.getenv("METAMASK_CONFIG_URL", "https://raw.githubusercontent.com/MetaMask/eth-phishing-detect/main/src/config.json"))
     parser.add_argument("--subagent", choices=["off", "dry-run", "live"], default=os.getenv("SIGNSSHIELD_SUBAGENT_MODE", "off"))
     parser.add_argument("--subagent-command", default=os.getenv("SIGNSSHIELD_SUBAGENT_COMMAND"))
+    parser.add_argument("--allow-fixture-risk", action="store_true", help="Allow local fixture labels to create high-confidence risk factors outside offline mode.")
     args = parser.parse_args()
+    mode = args.mode or ("live-best-effort" if args.live else "offline")
 
     options = AnalysisOptions(
         live=args.live,
+        mode=mode,
         tenderly_account=args.tenderly_account,
         tenderly_project=args.tenderly_project,
         tenderly_access_key=args.tenderly_access_key,
@@ -58,12 +62,13 @@ def main() -> int:
         metamask_config_url=args.metamask_config_url,
         subagent_mode=args.subagent,
         subagent_command=args.subagent_command,
+        allow_fixture_risk=(mode == "offline" or args.allow_fixture_risk),
     )
 
     files = iter_input_files(args.input)
     if not files:
         raise SystemExit(f"No JSON inputs found: {args.input}")
-    token_metadata_provider = TokenMetadataResolver(args.rpc_url, public_fallback=args.live and not args.no_public_rpc_fallback)
+    token_metadata_provider = TokenMetadataResolver(args.rpc_url, public_fallback=mode != "offline" and not args.no_public_rpc_fallback)
     for source in files:
         payload = json.loads(source.read_text(encoding="utf-8"))
         result = analyze_transaction(payload, str(source), options=options, token_metadata_provider=token_metadata_provider)

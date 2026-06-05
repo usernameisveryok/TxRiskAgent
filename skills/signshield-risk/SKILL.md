@@ -96,7 +96,7 @@ Return JSON compatible with `references/output_schema.md`. Every result should i
 - Read `references/risk_branches.md` when changing branch logic.
 - Read `references/output_schema.md` when changing JSON fields.
 - Read `references/external_adapters.md` when changing live provider integrations.
-- Read `dump-tx/certik-token-scan-erc20-risk-summary.md` when changing ERC20 token-risk profile fields or CertiK-style scoring rules.
+- Read `ACKNOWLEDGEMENTS.md` and linked research notes when changing ERC20 token-risk profile rules.
 - Use `scripts/analyze_evm_tx.py` as the deterministic baseline implementation.
 
 ## Validation
