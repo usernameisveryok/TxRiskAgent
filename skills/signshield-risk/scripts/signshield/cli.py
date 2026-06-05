@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 
 from .analyzer import analyze_transaction
+from .token_metadata import TokenMetadataResolver
 from .types import AnalysisOptions
 
 
@@ -37,6 +38,7 @@ def main() -> int:
     parser.add_argument("--etherscan-api-key", default=os.getenv("ETHERSCAN_API_KEY"))
     parser.add_argument("--blockscout-base-url", default=os.getenv("BLOCKSCOUT_BASE_URL"))
     parser.add_argument("--rpc-url", default=os.getenv("SIGNSSHIELD_RPC_URL"))
+    parser.add_argument("--no-public-rpc-fallback", action="store_true", help="Disable public RPC fallback when --live is enabled and --rpc-url is absent.")
     parser.add_argument("--goplus-base-url", default=os.getenv("GOPLUS_BASE_URL", "https://api.gopluslabs.io"))
     parser.add_argument("--metamask-config-url", default=os.getenv("METAMASK_CONFIG_URL", "https://raw.githubusercontent.com/MetaMask/eth-phishing-detect/main/src/config.json"))
     parser.add_argument("--subagent", choices=["off", "dry-run", "live"], default=os.getenv("SIGNSSHIELD_SUBAGENT_MODE", "off"))
@@ -51,6 +53,7 @@ def main() -> int:
         etherscan_api_key=args.etherscan_api_key,
         blockscout_base_url=args.blockscout_base_url,
         rpc_url=args.rpc_url,
+        public_rpc_fallback=not args.no_public_rpc_fallback,
         goplus_base_url=args.goplus_base_url,
         metamask_config_url=args.metamask_config_url,
         subagent_mode=args.subagent,
@@ -60,8 +63,9 @@ def main() -> int:
     files = iter_input_files(args.input)
     if not files:
         raise SystemExit(f"No JSON inputs found: {args.input}")
+    token_metadata_provider = TokenMetadataResolver(args.rpc_url, public_fallback=args.live and not args.no_public_rpc_fallback)
     for source in files:
         payload = json.loads(source.read_text(encoding="utf-8"))
-        result = analyze_transaction(payload, str(source), options=options)
+        result = analyze_transaction(payload, str(source), options=options, token_metadata_provider=token_metadata_provider)
         write_result(result, args.output, source)
     return 0

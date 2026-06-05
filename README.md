@@ -17,6 +17,12 @@ Live enrichment mode:
 uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx --live --output output/risk-reports-live-smoke
 ```
 
+Check bundled public EVM RPC endpoints:
+
+```bash
+uv run python skills/signshield-risk/scripts/check_public_rpc.py > output/public-rpc-check.json
+```
+
 Subagent dry-run context:
 
 ```bash
@@ -32,6 +38,7 @@ The live mode supports:
 - Etherscan / Blockscout contract reputation
 - GoPlus token threat intelligence
 - MetaMask eth-phishing-detect domain checks
+- Public EVM RPC fallback for ERC20 metadata when `--live` is enabled and no explicit RPC is configured
 
 Optional environment variables:
 
@@ -46,6 +53,7 @@ export SIGNSSHIELD_SUBAGENT_COMMAND=...
 ```
 
 Missing credentials are reported in `evidence.limitations`; they do not abort analysis.
+When `--live` is enabled, `SIGNSSHIELD_RPC_URL` or `--rpc-url` takes precedence. If neither is set, the analyzer probes bundled public HTTP RPC endpoints for the input `chainId` and records the chosen endpoint under `evidence.erc20TokenRisk.metadata.rpcStatus`. Use `--no-public-rpc-fallback` to keep live mode from using public RPC.
 
 Subagent live mode uses `SIGNSSHIELD_SUBAGENT_COMMAND`. The command reads context JSON from stdin and writes assessment JSON to stdout.
 

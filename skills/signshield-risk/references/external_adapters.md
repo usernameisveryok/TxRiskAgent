@@ -106,6 +106,28 @@ Provider behavior:
 - Adds `phishing_domain_match` risk factor for matches.
 - Parsed facts are stored under `evidence.threatIntel.providers.metamask`.
 
+## 6. Public RPC Fallback
+
+Implementation:
+
+- `signshield.rpc.PublicRpcResolver`
+- `signshield.rpc.check_public_rpc_endpoints`
+- `signshield.token_metadata.TokenMetadataResolver`
+
+Provider behavior:
+
+- Explicit `--rpc-url` or `SIGNSSHIELD_RPC_URL` always takes precedence.
+- In `--live` mode, if no explicit RPC is configured, the resolver probes bundled public HTTP RPC endpoints with `eth_chainId` and selects the first endpoint matching the input chain id.
+- WebSocket endpoints are registered for visibility but skipped by the current HTTP `eth_call` metadata pipeline.
+- Selected endpoint, probe attempts, and metadata call errors are stored under `evidence.erc20TokenRisk.metadata.rpcStatus`.
+- Use `--no-public-rpc-fallback` to disable public endpoints in live mode.
+
+Availability check:
+
+```bash
+uv run python skills/signshield-risk/scripts/check_public_rpc.py > output/public-rpc-check.json
+```
+
 ## Testing
 
 Unit tests mock provider responses and do not require live credentials:
@@ -125,7 +147,7 @@ PY
 
 Use live mode for end-to-end enrichment. If credentials are absent, the result remains valid and documents missing providers in `limitations`.
 
-## 6. ERC20 Token Risk Profile
+## 7. ERC20 Token Risk Profile
 
 Implementation:
 
@@ -136,12 +158,12 @@ Implementation:
 
 Provider behavior:
 
-- Token metadata uses local fixtures first, optional RPC second, and explorer contract names as fallback.
+- Token metadata uses local fixtures first, optional/selected RPC second, and explorer contract names as fallback.
 - GoPlus raw token reports are normalized into CertiK-style fields when available.
 - Bytecode scanning is lightweight and only marks selector/opcode presence. It does not prove source-level semantics.
 - Missing holder/LP/deployment fields remain `null`.
 
-## 7. Subagent Harness
+## 8. Subagent Harness
 
 Implementation:
 

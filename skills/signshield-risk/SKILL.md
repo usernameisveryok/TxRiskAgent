@@ -32,6 +32,13 @@ uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx --live --
 ```
 
 Live adapters are best-effort. Missing API keys or provider failures are written into `evidence` and `limitations`; they should not crash the analysis.
+When `--live` is enabled and no `--rpc-url`/`SIGNSSHIELD_RPC_URL` is configured, the analyzer probes bundled public EVM HTTP RPC endpoints for the transaction chain and falls back to the first chain-matching endpoint. The selected endpoint and probe attempts are recorded under `evidence.erc20TokenRisk.metadata.rpcStatus`. Use `--no-public-rpc-fallback` to disable this behavior.
+
+Public RPC availability can be checked independently:
+
+```bash
+uv run python skills/signshield-risk/scripts/check_public_rpc.py > output/public-rpc-check.json
+```
 
 ERC20 semantic review can be enabled separately:
 

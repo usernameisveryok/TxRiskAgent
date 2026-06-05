@@ -23,6 +23,7 @@ CHAIN_NAMES = {
     137: "Polygon",
     42161: "Arbitrum",
     8453: "Base",
+    43114: "Avalanche C-Chain",
 }
 
 

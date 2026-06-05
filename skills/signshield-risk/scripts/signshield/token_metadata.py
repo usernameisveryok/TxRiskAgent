@@ -4,6 +4,7 @@ from typing import Any
 
 from .adapters.http import HttpClient
 from .fixtures import TOKEN_FIXTURES
+from .rpc import PublicRpcResolver
 from .utils import normalize_address
 
 
@@ -14,9 +15,18 @@ ERC20_TOTAL_SUPPLY_SELECTOR = "0x18160ddd"
 
 
 class TokenMetadataResolver:
-    def __init__(self, rpc_url: str | None = None, client: HttpClient | None = None) -> None:
+    def __init__(
+        self,
+        rpc_url: str | None = None,
+        client: HttpClient | None = None,
+        *,
+        public_fallback: bool = False,
+        rpc_resolver: PublicRpcResolver | None = None,
+    ) -> None:
         self.rpc_url = rpc_url
         self.client = client or HttpClient()
+        self.public_fallback = public_fallback
+        self.rpc_resolver = rpc_resolver or (PublicRpcResolver(client=self.client) if public_fallback and not rpc_url else None)
 
     def metadata(self, chain_id: int, address: str | None, contract_reputation: dict[str, Any] | None = None) -> dict[str, Any]:
         normalized = normalize_address(address)
@@ -29,14 +39,15 @@ class TokenMetadataResolver:
             base.update(fixture)
             base["sources"].append("local_fixture")
 
-        rpc = self._rpc_metadata(normalized)
+        rpc = self._rpc_metadata(chain_id, normalized)
         if rpc.get("status") == "ok":
             for key in ("name", "symbol", "decimals", "totalSupplyRaw"):
                 if rpc.get(key) is not None:
                     base[key] = rpc[key]
             base["sources"].append("rpc")
+            base["rpcStatus"] = _rpc_status_summary(rpc)
         elif rpc.get("status") not in {None, "config_missing"}:
-            base["rpcStatus"] = rpc
+            base["rpcStatus"] = _rpc_status_summary(rpc)
 
         explorer = self._explorer_metadata(contract_reputation)
         if explorer:
@@ -49,10 +60,17 @@ class TokenMetadataResolver:
             base["sources"].append("default")
         return base
 
-    def _rpc_metadata(self, address: str) -> dict[str, Any]:
-        if not self.rpc_url:
+    def _rpc_metadata(self, chain_id: int, address: str) -> dict[str, Any]:
+        rpc = self._resolve_rpc(chain_id)
+        rpc_url = rpc.get("url")
+        if not rpc_url:
+            if rpc.get("status") not in {"config_missing"}:
+                return rpc
             return {"status": "config_missing"}
-        result: dict[str, Any] = {"status": "ok"}
+        result: dict[str, Any] = {
+            "status": "ok",
+            "rpc": {key: rpc.get(key) for key in ("source", "chainId", "url", "attempts") if rpc.get(key) is not None},
+        }
         calls = {
             "name": ERC20_NAME_SELECTOR,
             "symbol": ERC20_SYMBOL_SELECTOR,
@@ -60,7 +78,7 @@ class TokenMetadataResolver:
             "totalSupplyRaw": ERC20_TOTAL_SUPPLY_SELECTOR,
         }
         for field, selector in calls.items():
-            value = self._eth_call(address, selector)
+            value = self._eth_call(rpc_url, address, selector)
             if value.get("status") != "ok":
                 result.setdefault("errors", {})[field] = value
                 continue
@@ -71,10 +89,19 @@ class TokenMetadataResolver:
                 result[field] = _decode_uint(raw)
         return result
 
-    def _eth_call(self, to: str, data: str) -> dict[str, Any]:
+    def _resolve_rpc(self, chain_id: int) -> dict[str, Any]:
+        if self.rpc_url:
+            return {"status": "ok", "source": "explicit", "chainId": chain_id, "url": self.rpc_url, "attempts": []}
+        if not self.public_fallback:
+            return {"status": "config_missing"}
+        if not self.rpc_resolver:
+            return {"status": "config_missing"}
+        return self.rpc_resolver.resolve(chain_id)
+
+    def _eth_call(self, rpc_url: str, to: str, data: str) -> dict[str, Any]:
         try:
             response = self.client.post_json(
-                self.rpc_url or "",
+                rpc_url,
                 payload={"jsonrpc": "2.0", "id": 1, "method": "eth_call", "params": [{"to": to, "data": data}, "latest"]},
             )
         except Exception as exc:
@@ -116,3 +143,11 @@ def _decode_abi_string(raw: Any) -> str | None:
     except Exception:
         return None
     return None
+
+
+def _rpc_status_summary(rpc: dict[str, Any]) -> dict[str, Any]:
+    summary = {key: rpc.get(key) for key in ("status", "source", "chainId", "url", "attempts", "errors") if rpc.get(key) is not None}
+    nested = rpc.get("rpc")
+    if isinstance(nested, dict):
+        summary.update({key: nested.get(key) for key in ("source", "chainId", "url", "attempts") if nested.get(key) is not None})
+    return summary

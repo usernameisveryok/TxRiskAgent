@@ -23,6 +23,7 @@ class AnalysisOptions:
     etherscan_api_key: str | None = None
     blockscout_base_url: str | None = None
     rpc_url: str | None = None
+    public_rpc_fallback: bool = True
     goplus_base_url: str = "https://api.gopluslabs.io"
     metamask_config_url: str = "https://raw.githubusercontent.com/MetaMask/eth-phishing-detect/main/src/config.json"
     subagent_mode: str = "off"

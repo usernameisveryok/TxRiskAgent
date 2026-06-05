@@ -88,7 +88,7 @@ def analyze_transaction(
     addresses = collect_addresses(from_addr, to_addr, decoded)
     threat_intel = threat_adapter.inspect(chain.chain_id, addresses, origin) if threat_adapter else {"status": "not_run", "matches": []}
     erc20_token_address = erc20_token_target(category, to_addr)
-    token_metadata_resolver = token_metadata_provider or TokenMetadataResolver(options.rpc_url)
+    token_metadata_resolver = token_metadata_provider or TokenMetadataResolver(options.rpc_url, public_fallback=options.live and options.public_rpc_fallback)
     token_meta = token_metadata_resolver.metadata(chain.chain_id, erc20_token_address, contract_rep) if erc20_token_address else {}
     bytecode_scan = scan_contract_bytecode(chain.chain_id, erc20_token_address, contract_rep) if erc20_token_address else {"status": "not_applicable", "signals": {}}
     erc20_profile = (
