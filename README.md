@@ -41,10 +41,60 @@ flowchart TD
   K --> L["Final Risk Report"]
 ```
 
+## Airdrop Safety Track
+
+This fork also includes an airdrop-focused demo track: **Airdrop Claim Pre-Signature Risk Agent**. The goal is to detect when a user thinks they are claiming an airdrop, but the pending wallet action actually grants an approval, Permit, NFT operator permission, transfer, bundled call, or opaque unknown-contract entrypoint.
+
+Start here:
+
+```text
+docs/airdrop-security-cases.md
+docs/airdrop-demo-storyline.md
+```
+
+Core airdrop demo fixtures:
+
+```bash
+mkdir -p output/risk-reports-airdrop
+for fixture in \
+  dump-tx/2026-06-03T00-01-00-000Z-erc20-unlimited-approval-phishing.json \
+  dump-tx/2026-06-03T00-03-00-000Z-eip2612-permit-unlimited-drainer.json \
+  dump-tx/2026-06-03T00-04-00-000Z-nft-setapprovalforall-fake-airdrop.json \
+  dump-tx/2026-06-03T00-09-00-000Z-multicall-hidden-approval-and-transfer.json \
+  dump-tx/2026-06-03T00-11-00-000Z-universal-router-execute-permit2-style-drain.json \
+  dump-tx/2026-06-03T00-12-00-000Z-unknown-claim-rewards-selector.json
+do
+  uv run python skills/signshield-risk/scripts/analyze_evm_tx.py "$fixture" --output output/risk-reports-airdrop
+done
+```
+
+If `uv` is not installed, the deterministic analyzer also runs with plain
+Python:
+
+```bash
+mkdir -p output/risk-reports-airdrop
+for fixture in \
+  dump-tx/2026-06-03T00-01-00-000Z-erc20-unlimited-approval-phishing.json \
+  dump-tx/2026-06-03T00-03-00-000Z-eip2612-permit-unlimited-drainer.json \
+  dump-tx/2026-06-03T00-04-00-000Z-nft-setapprovalforall-fake-airdrop.json \
+  dump-tx/2026-06-03T00-09-00-000Z-multicall-hidden-approval-and-transfer.json \
+  dump-tx/2026-06-03T00-11-00-000Z-universal-router-execute-permit2-style-drain.json \
+  dump-tx/2026-06-03T00-12-00-000Z-unknown-claim-rewards-selector.json
+do
+  python3 skills/signshield-risk/scripts/analyze_evm_tx.py "$fixture" --output output/risk-reports-airdrop
+done
+```
+
 ## Quick Start
 
 ```bash
 uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx --output output/risk-reports
+```
+
+Without `uv`:
+
+```bash
+python3 skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx --output output/risk-reports
 ```
 
 Live enrichment mode:
@@ -219,6 +269,15 @@ The Snap uses MetaMask transaction insight permissions to POST `{chainId, transa
 ```bash
 uv lock
 uv run pytest -q
+python3 -m py_compile $(find skills/signshield-risk/scripts -name '*.py' | sort)
+```
+
+Without `uv`, install the runtime/test dependencies in your active Python
+environment and run the same checks directly:
+
+```bash
+python3 -m pip install requests pytest
+python3 -m pytest -q
 python3 -m py_compile $(find skills/signshield-risk/scripts -name '*.py' | sort)
 ```
 
