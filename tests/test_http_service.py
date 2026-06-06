@@ -1,16 +1,54 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 import json
 from pathlib import Path
+import threading
+import time
 
 from fastapi.testclient import TestClient
 import yaml
 
-from signshield.http_service import create_app, options_from_env
+from signshield.http_service import create_app, http_thread_workers_from_env, options_from_env
 from signshield.types import AnalysisOptions
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class ThreadNameRuntime:
+    def __init__(self) -> None:
+        self.options = AnalysisOptions(live=False, mode="offline")
+
+    def analyze(self, payload: dict, input_ref: str = "<memory>") -> dict:
+        return {
+            "schemaVersion": "signshield-risk/v0.2",
+            "inputRef": input_ref,
+            "workerThread": threading.current_thread().name,
+        }
+
+
+class BlockingRuntime:
+    def __init__(self, delay: float = 0.1) -> None:
+        self.options = AnalysisOptions(live=False, mode="offline")
+        self.delay = delay
+        self.active = 0
+        self.max_active = 0
+        self.lock = threading.Lock()
+
+    def analyze(self, payload: dict, input_ref: str = "<memory>") -> dict:
+        with self.lock:
+            self.active += 1
+            self.max_active = max(self.max_active, self.active)
+        try:
+            time.sleep(self.delay)
+            return {
+                "schemaVersion": "signshield-risk/v0.2",
+                "inputRef": input_ref,
+            }
+        finally:
+            with self.lock:
+                self.active -= 1
 
 
 def client_for_offline_service() -> TestClient:
@@ -49,6 +87,31 @@ def test_tx_scan_returns_risk_report_and_request_id() -> None:
     assert body["inputRef"] == f"http:tx-scan:{request_id}"
     assert body["verdict"]["riskLevel"] == "HIGH"
     assert body["intent"]["category"] == "NATIVE_TRANSFER"
+
+
+def test_tx_scan_runs_analyzer_in_configured_thread_pool() -> None:
+    client = TestClient(create_app(runtime=ThreadNameRuntime(), thread_workers=2))
+
+    response = client.post("/tx-scan", json={"chainId": "eip155:1", "transaction": {}})
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["schemaVersion"] == "signshield-risk/v0.2"
+    assert body["workerThread"].startswith("tx-risk-scan")
+
+
+def test_tx_scan_handles_multiple_requests_in_parallel() -> None:
+    runtime = BlockingRuntime()
+    client = TestClient(create_app(runtime=runtime, thread_workers=4))
+
+    def post_scan() -> int:
+        return client.post("/tx-scan", json={"chainId": "eip155:1", "transaction": {}}).status_code
+
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        statuses = list(executor.map(lambda _: post_scan(), range(4)))
+
+    assert statuses == [200, 200, 200, 200]
+    assert runtime.max_active > 1
 
 
 def test_tx_scan_requires_configured_api_key(monkeypatch) -> None:
@@ -185,3 +248,33 @@ def test_options_from_env_accepts_agent_loop_override(monkeypatch) -> None:
 
     assert options.agent_loop == "kimi"
     assert options.agent_loop_max_steps == 4
+
+
+def test_http_thread_workers_from_env_defaults_to_four(monkeypatch) -> None:
+    monkeypatch.delenv("SIGNSSHIELD_HTTP_THREAD_WORKERS", raising=False)
+
+    assert http_thread_workers_from_env() == 4
+
+
+def test_http_thread_workers_from_env_accepts_override(monkeypatch) -> None:
+    monkeypatch.setenv("SIGNSSHIELD_HTTP_THREAD_WORKERS", "2")
+
+    assert http_thread_workers_from_env() == 2
+
+
+def test_http_thread_workers_from_env_caps_at_four(monkeypatch) -> None:
+    monkeypatch.setenv("SIGNSSHIELD_HTTP_THREAD_WORKERS", "8")
+
+    assert http_thread_workers_from_env() == 4
+
+
+def test_http_thread_workers_from_env_enforces_minimum_one(monkeypatch) -> None:
+    monkeypatch.setenv("SIGNSSHIELD_HTTP_THREAD_WORKERS", "0")
+
+    assert http_thread_workers_from_env() == 1
+
+
+def test_http_thread_workers_from_env_ignores_invalid_override(monkeypatch) -> None:
+    monkeypatch.setenv("SIGNSSHIELD_HTTP_THREAD_WORKERS", "not-an-int")
+
+    assert http_thread_workers_from_env() == 4

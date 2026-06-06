@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import asynccontextmanager
 import os
 import secrets
 from typing import Any
@@ -21,6 +24,9 @@ SERVICE_NAME = "tx-risk-agent"
 VALID_MODES = {"offline", "live-best-effort", "production"}
 VALID_AGENT_LOOPS = {"off", "kimi"}
 API_KEY_ENV = "TX_RISK_API_KEY"
+HTTP_THREAD_WORKERS_ENV = "SIGNSSHIELD_HTTP_THREAD_WORKERS"
+DEFAULT_HTTP_THREAD_WORKERS = 4
+MAX_HTTP_THREAD_WORKERS = 4
 
 
 class TransactionScanRequest(BaseModel):
@@ -61,18 +67,37 @@ class ErrorResponse(BaseModel):
 RiskReport = dict[str, Any]
 
 
-def create_app(*, runtime: DefenseRuntime | None = None, options: AnalysisOptions | None = None) -> FastAPI:
+def create_app(
+    *,
+    runtime: DefenseRuntime | None = None,
+    options: AnalysisOptions | None = None,
+    thread_workers: int | None = None,
+) -> FastAPI:
     effective_runtime = runtime or DefenseRuntime(options or options_from_env())
     mode = effective_runtime.options.mode or ("live-best-effort" if effective_runtime.options.live else "offline")
+    scan_thread_workers = _normalize_thread_workers(
+        thread_workers if thread_workers is not None else http_thread_workers_from_env()
+    )
+    scan_executor = ThreadPoolExecutor(max_workers=scan_thread_workers, thread_name_prefix="tx-risk-scan")
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        try:
+            yield
+        finally:
+            scan_executor.shutdown(wait=True)
 
     app = FastAPI(
         title="TxRiskAgent HTTP Service",
         version="0.1.0",
         description="Pre-signature EVM transaction risk scanner.",
+        lifespan=lifespan,
     )
     app.state.runtime = effective_runtime
     app.state.mode = mode
     app.state.api_key = os.getenv(API_KEY_ENV, "")
+    app.state.scan_executor = scan_executor
+    app.state.scan_thread_workers = scan_thread_workers
     app.openapi = lambda: _openapi_schema(app)  # type: ignore[method-assign]
 
     cors_origins = _csv_env("SIGNSSHIELD_CORS_ORIGINS")
@@ -150,7 +175,15 @@ def create_app(*, runtime: DefenseRuntime | None = None, options: AnalysisOption
             )
 
         try:
-            return app.state.runtime.analyze(payload, input_ref=f"http:tx-scan:{request_id}")
+            input_ref = f"http:tx-scan:{request_id}"
+            loop = asyncio.get_running_loop()
+            return await loop.run_in_executor(
+                app.state.scan_executor,
+                _analyze_payload,
+                app.state.runtime,
+                payload,
+                input_ref,
+            )
         except Exception as exc:
             return _error_response(
                 500,
@@ -161,6 +194,15 @@ def create_app(*, runtime: DefenseRuntime | None = None, options: AnalysisOption
             )
 
     return app
+
+
+def http_thread_workers_from_env() -> int:
+    return _bounded_int_env(
+        HTTP_THREAD_WORKERS_ENV,
+        default=DEFAULT_HTTP_THREAD_WORKERS,
+        minimum=1,
+        maximum=MAX_HTTP_THREAD_WORKERS,
+    )
 
 
 def options_from_env() -> AnalysisOptions:
@@ -197,6 +239,10 @@ def options_from_env() -> AnalysisOptions:
         agent_loop_max_steps=_int_env("SIGNSSHIELD_AGENT_LOOP_MAX_STEPS", 6),
         agent_loop_fallback=_bool_env("SIGNSSHIELD_AGENT_LOOP_FALLBACK", True),
     )
+
+
+def _analyze_payload(runtime: DefenseRuntime, payload: dict[str, Any], input_ref: str) -> dict[str, Any]:
+    return runtime.analyze(payload, input_ref=input_ref)
 
 
 def _error_response(status_code: int, error: str, message: str, request_id: str, response: Response) -> JSONResponse:
@@ -286,6 +332,22 @@ def _int_env(name: str, default: int) -> int:
     if value is None or not value.strip():
         return default
     return int(value)
+
+
+def _bounded_int_env(name: str, *, default: int, minimum: int, maximum: int) -> int:
+    try:
+        value = _int_env(name, default)
+    except ValueError:
+        value = default
+    return _normalize_int(value, minimum=minimum, maximum=maximum)
+
+
+def _normalize_thread_workers(value: int) -> int:
+    return _normalize_int(value, minimum=1, maximum=MAX_HTTP_THREAD_WORKERS)
+
+
+def _normalize_int(value: int, *, minimum: int, maximum: int) -> int:
+    return min(max(value, minimum), maximum)
 
 
 def _csv_env(name: str) -> list[str]:
