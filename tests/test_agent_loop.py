@@ -160,6 +160,36 @@ def test_agent_loop_provider_error_falls_back_to_deterministic_report() -> None:
     assert result["evidence"]["agentLoop"]["error"] == "provider unavailable"
 
 
+def test_agent_loop_failure_records_redacted_diagnostics(monkeypatch) -> None:
+    monkeypatch.setenv("KIMI_API_KEY", "secret-test-key")
+    monkeypatch.setenv("KIMI_BASE_URL", "https://api.kimi.com/coding/v1")
+    monkeypatch.setenv("KIMI_MODEL_NAME", "kimi-for-coding")
+    monkeypatch.setenv("SIGNSSHIELD_AGENT_LOOP_MODEL", KIMI_CODE_MODEL_KEY)
+
+    result = analyze_transaction(
+        load_dump("2026-06-02T09-47"),
+        options=AnalysisOptions(mode="offline", agent_loop="kimi"),
+        agent_loop_client=RaisingAgentLoopClient(),
+    )
+
+    diagnostics = result["evidence"]["agentLoop"]["diagnostics"]
+    assert diagnostics["resolvedModel"] == KIMI_CODE_MODEL_KEY
+    assert diagnostics["env"]["KIMI_API_KEY"] == {
+        "present": True,
+        "empty": False,
+        "length": len("secret-test-key"),
+    }
+    assert diagnostics["env"]["KIMI_MODEL_NAME"] == "kimi-for-coding"
+    assert diagnostics["config"]["built"] is True
+    assert diagnostics["config"]["resolvedModelInConfig"] is True
+    assert diagnostics["config"]["providerApiKey"] == {
+        "present": True,
+        "empty": False,
+        "length": len("secret-test-key"),
+    }
+    assert "secret-test-key" not in json.dumps(diagnostics)
+
+
 def test_agent_loop_can_be_configured_to_raise_on_invalid_output() -> None:
     client = FakeAgentLoopClient({"bad": "shape"})
 

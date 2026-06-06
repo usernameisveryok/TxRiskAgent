@@ -69,7 +69,7 @@ def analyze_transaction(
     if options.agent_loop != "off":
         from dataclasses import replace
 
-        from .agent_loop import AgentLoopError, analyze_with_agent_loop
+        from .agent_loop import AgentLoopError, analyze_with_agent_loop, build_agent_loop_diagnostics
 
         try:
             return analyze_with_agent_loop(payload, input_ref, options=options, client=agent_loop_client)
@@ -96,6 +96,7 @@ def analyze_transaction(
                     "backend": options.agent_loop_backend,
                     "error": str(exc)[:300],
                     "fallback": "deterministic",
+                    "diagnostics": build_agent_loop_diagnostics(options),
                 }
                 limitations = evidence.setdefault("limitations", [])
                 if isinstance(limitations, list):

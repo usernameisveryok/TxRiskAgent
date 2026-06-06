@@ -336,6 +336,83 @@ def build_kimi_code_config_from_env() -> Any | None:
     )
 
 
+def build_agent_loop_diagnostics(options: AnalysisOptions) -> dict[str, Any]:
+    diagnostics: dict[str, Any] = {
+        "backend": options.agent_loop_backend,
+        "requestedModel": options.agent_loop_model,
+        "resolvedModel": resolve_kimi_agent_model(options),
+        "env": {
+            "KIMI_API_KEY": _env_presence("KIMI_API_KEY"),
+            "KIMI_BASE_URL": os.getenv("KIMI_BASE_URL"),
+            "KIMI_MODEL_NAME": os.getenv("KIMI_MODEL_NAME"),
+            "KIMI_AGENT_MODEL": os.getenv("KIMI_AGENT_MODEL"),
+            "SIGNSSHIELD_AGENT_LOOP_MODEL": os.getenv("SIGNSSHIELD_AGENT_LOOP_MODEL"),
+            "SIGNSSHIELD_AGENT_LOOP_TIMEOUT": os.getenv("SIGNSSHIELD_AGENT_LOOP_TIMEOUT"),
+            "SIGNSSHIELD_AGENT_LOOP_MAX_STEPS": os.getenv("SIGNSSHIELD_AGENT_LOOP_MAX_STEPS"),
+        },
+        "sdk": {},
+        "config": {},
+    }
+    try:
+        __import__("kimi_agent_sdk")
+        diagnostics["sdk"]["kimiAgentSdkAvailable"] = True
+    except Exception as exc:
+        diagnostics["sdk"]["kimiAgentSdkAvailable"] = False
+        diagnostics["sdk"]["kimiAgentSdkError"] = f"{exc.__class__.__name__}: {exc}"
+    try:
+        __import__("kimi_cli.config")
+        diagnostics["sdk"]["kimiCliConfigAvailable"] = True
+    except Exception as exc:
+        diagnostics["sdk"]["kimiCliConfigAvailable"] = False
+        diagnostics["sdk"]["kimiCliConfigError"] = f"{exc.__class__.__name__}: {exc}"
+
+    try:
+        config = build_kimi_code_config_from_env()
+    except Exception as exc:
+        diagnostics["config"] = {
+            "built": False,
+            "error": f"{exc.__class__.__name__}: {exc}",
+        }
+        return diagnostics
+
+    resolved_model = diagnostics["resolvedModel"]
+    if config is None:
+        diagnostics["config"] = {
+            "built": False,
+            "reason": "KIMI_API_KEY is not set",
+            "resolvedModelInConfig": False,
+        }
+        return diagnostics
+
+    model_keys = sorted(config.models.keys())
+    model = config.models.get(resolved_model)
+    provider = config.providers.get(model.provider) if model is not None else None
+    diagnostics["config"] = {
+        "built": True,
+        "defaultModel": config.default_model,
+        "modelKeys": model_keys,
+        "resolvedModelInConfig": model is not None,
+        "providerType": provider.type if provider is not None else None,
+        "providerBaseUrl": provider.base_url if provider is not None else None,
+        "providerApiKey": _secret_presence(provider.api_key.get_secret_value()) if provider is not None else None,
+        "providerModel": model.model if model is not None else None,
+        "maxContextSize": model.max_context_size if model is not None else None,
+        "capabilities": sorted(model.capabilities or []) if model is not None else None,
+    }
+    return diagnostics
+
+
+def _env_presence(name: str) -> dict[str, Any]:
+    value = os.getenv(name)
+    return _secret_presence(value)
+
+
+def _secret_presence(value: str | None) -> dict[str, Any]:
+    if value is None:
+        return {"present": False}
+    return {"present": True, "empty": value == "", "length": len(value)}
+
+
 @contextmanager
 def isolated_kimi_provider_env(*, enabled: bool) -> Iterator[None]:
     if not enabled:
