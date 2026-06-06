@@ -68,7 +68,7 @@ uv run uvicorn signshield.http_service:app --app-dir skills/signshield-risk/scri
 Scan one transaction over HTTP:
 
 ```powershell
-Invoke-RestMethod -Method Post -Uri http://localhost:8000/tx-scan -ContentType application/json -Body (Get-Content dump-tx/2026-06-02T11-14-54-807Z-20571aef-0d9a-489d-b3e1-3b4aaf982fbd.json -Raw)
+Invoke-RestMethod -Method Post -Uri http://localhost:8000/tx-scan -Headers @{"X-API-Key"=$env:TX_RISK_API_KEY} -ContentType application/json -Body (Get-Content dump-tx/2026-06-02T11-14-54-807Z-20571aef-0d9a-489d-b3e1-3b4aaf982fbd.json -Raw)
 ```
 
 Check bundled public EVM RPC endpoints:
@@ -147,9 +147,11 @@ export SIGNSSHIELD_OPENAI_REASONING_EFFORT=medium
 HTTP service environment variables:
 
 ```bash
+export TX_RISK_API_KEY=...
 export SIGNSSHIELD_HTTP_MODE=production
 export SIGNSSHIELD_PUBLIC_RPC_FALLBACK=true
 export SIGNSSHIELD_CORS_ORIGINS=*
+export SIGNSSHIELD_TIMEOUT=30
 ```
 
 Missing credentials are reported in `evidence.limitations`; they do not abort analysis.
@@ -167,9 +169,19 @@ Subagent live mode uses `SIGNSSHIELD_SUBAGENT_COMMAND`. The command reads contex
 
 ## HTTP API
 
-`POST /tx-scan` accepts the same JSON shape as `dump-tx/*.json`, either `chainId` plus `transaction` or a flat transaction-like object. Successful responses return the full `signshield-risk/v0.2` report directly, with an `X-Request-Id` response header and `inputRef` set to `http:tx-scan:<requestId>`.
+`POST /tx-scan` accepts the same JSON shape as `dump-tx/*.json`, either `chainId` plus `transaction` or a flat transaction-like object. If `TX_RISK_API_KEY` is configured, callers must send it as `X-API-Key`. Successful responses return the full `signshield-risk/v0.2` report directly, with an `X-Request-Id` response header and `inputRef` set to `http:tx-scan:<requestId>`.
 
 `GET /health` returns service status, schema version, and the configured mode. By default the service starts in `production` mode with live adapters enabled and local fixture risk disabled. Missing provider credentials are reported inside the risk report instead of failing the request.
+
+`GET /openapi.yaml` returns the service OpenAPI document as YAML for API marketplaces such as xapi.to.
+
+Export a static OpenAPI YAML file:
+
+```bash
+uv run python skills/signshield-risk/scripts/export_openapi.py --server-url https://your-railway-domain.up.railway.app --output openapi.yaml
+```
+
+Railway deployment uses `railway.json`. Configure at least `TX_RISK_API_KEY` and `SIGNSSHIELD_HTTP_MODE=production` in Railway variables, then deploy the repo. After Railway assigns a public domain, rerun the OpenAPI export command with that domain before submitting the YAML URL or file to xapi.to.
 
 ## MetaMask Snap Demo
 

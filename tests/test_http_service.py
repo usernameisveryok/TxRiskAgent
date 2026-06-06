@@ -50,6 +50,32 @@ def test_tx_scan_returns_risk_report_and_request_id() -> None:
     assert body["intent"]["category"] == "NATIVE_TRANSFER"
 
 
+def test_tx_scan_requires_configured_api_key(monkeypatch) -> None:
+    monkeypatch.setenv("TX_RISK_API_KEY", "expected-key")
+    client = client_for_offline_service()
+
+    response = client.post("/tx-scan", json=load_dump("2026-06-02T11-14"))
+
+    body = response.json()
+    assert response.status_code == 401
+    assert response.headers["X-Request-Id"] == body["requestId"]
+    assert body["error"] == "unauthorized"
+
+
+def test_tx_scan_accepts_configured_api_key(monkeypatch) -> None:
+    monkeypatch.setenv("TX_RISK_API_KEY", "expected-key")
+    client = client_for_offline_service()
+
+    response = client.post(
+        "/tx-scan",
+        headers={"X-API-Key": "expected-key"},
+        json=load_dump("2026-06-02T11-14"),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["schemaVersion"] == "signshield-risk/v0.2"
+
+
 def test_tx_scan_accepts_flat_transaction_payload() -> None:
     client = client_for_offline_service()
 
@@ -68,6 +94,21 @@ def test_tx_scan_accepts_flat_transaction_payload() -> None:
     assert response.status_code == 200
     assert body["schemaVersion"] == "signshield-risk/v0.2"
     assert body["intent"]["category"] == "NATIVE_TRANSFER"
+
+
+def test_openapi_yaml_documents_tx_scan_security_and_body(monkeypatch) -> None:
+    monkeypatch.setenv("TX_RISK_API_KEY", "expected-key")
+    client = client_for_offline_service()
+
+    response = client.get("/openapi.yaml")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/yaml")
+    body = response.text
+    assert "/tx-scan:" in body
+    assert "X-API-Key" in body
+    assert "requestBody:" in body
+    assert "TransactionScanRequest" in body
 
 
 def test_tx_scan_rejects_non_object_json() -> None:
@@ -97,10 +138,20 @@ def test_tx_scan_returns_unsupported_chain_as_business_result() -> None:
 def test_options_from_env_defaults_to_production_live(monkeypatch) -> None:
     monkeypatch.delenv("SIGNSSHIELD_HTTP_MODE", raising=False)
     monkeypatch.delenv("SIGNSSHIELD_PUBLIC_RPC_FALLBACK", raising=False)
+    monkeypatch.delenv("SIGNSSHIELD_TIMEOUT", raising=False)
 
     options = options_from_env()
 
     assert options.mode == "production"
     assert options.live is True
+    assert options.timeout == 30.0
     assert options.public_rpc_fallback is True
     assert options.allow_fixture_risk is False
+
+
+def test_options_from_env_accepts_timeout_override(monkeypatch) -> None:
+    monkeypatch.setenv("SIGNSSHIELD_TIMEOUT", "45")
+
+    options = options_from_env()
+
+    assert options.timeout == 45.0

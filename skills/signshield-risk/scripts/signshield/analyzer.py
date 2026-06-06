@@ -10,6 +10,7 @@ from .adapters import (
     SourcifyOpenChainResolver,
     TenderlySimulationAdapter,
 )
+from .adapters.http import HttpClient
 from .decode import decode_calldata
 from .contract_bytecode_scanner import scan_contract_bytecode
 from .decision import build_decision, confidence_for
@@ -36,10 +37,11 @@ from .utils import (
 def build_default_adapters(options: AnalysisOptions) -> dict[str, Any]:
     if not options.live:
         return {}
-    resolver = CombinedCalldataResolver([SourcifyOpenChainResolver(), FourByteDirectoryResolver()])
-    simulation = TenderlySimulationAdapter(options.tenderly_account, options.tenderly_project, options.tenderly_access_key)
-    contract = CompositeContractReputationAdapter(options.etherscan_api_key, options.blockscout_base_url)
-    threat = CompositeThreatIntelAdapter(options.goplus_base_url, options.metamask_config_url)
+    client = HttpClient(timeout=options.timeout)
+    resolver = CombinedCalldataResolver([SourcifyOpenChainResolver(client=client), FourByteDirectoryResolver(client=client)])
+    simulation = TenderlySimulationAdapter(options.tenderly_account, options.tenderly_project, options.tenderly_access_key, client=client)
+    contract = CompositeContractReputationAdapter(options.etherscan_api_key, options.blockscout_base_url, client=client)
+    threat = CompositeThreatIntelAdapter(options.goplus_base_url, options.metamask_config_url, client=client)
     return {
         "calldata_resolver": resolver,
         "simulation_adapter": simulation,

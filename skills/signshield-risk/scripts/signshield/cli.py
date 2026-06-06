@@ -9,7 +9,7 @@ from .analyzer import analyze_transaction
 from .compact import compact_report
 from .llm_summary import apply_llm_summary
 from .token_metadata import TokenMetadataResolver
-from .types import AnalysisOptions
+from .types import DEFAULT_REQUEST_TIMEOUT, AnalysisOptions
 
 
 def iter_input_files(path: Path) -> list[Path]:
@@ -44,6 +44,7 @@ def main() -> int:
     parser.add_argument("--no-public-rpc-fallback", action="store_true", help="Disable public RPC fallback when --live is enabled and --rpc-url is absent.")
     parser.add_argument("--goplus-base-url", default=os.getenv("GOPLUS_BASE_URL", "https://api.gopluslabs.io"))
     parser.add_argument("--metamask-config-url", default=os.getenv("METAMASK_CONFIG_URL", "https://raw.githubusercontent.com/MetaMask/eth-phishing-detect/main/src/config.json"))
+    parser.add_argument("--timeout", type=float, default=float(os.getenv("SIGNSSHIELD_TIMEOUT", DEFAULT_REQUEST_TIMEOUT)), help="HTTP request timeout for live providers in seconds.")
     parser.add_argument("--subagent", choices=["off", "dry-run", "live"], default=os.getenv("SIGNSSHIELD_SUBAGENT_MODE", "off"))
     parser.add_argument("--subagent-command", default=os.getenv("SIGNSSHIELD_SUBAGENT_COMMAND"))
     parser.add_argument("--output-format", choices=["compact", "full"], default="compact", help="Output compact user JSON by default; use full for forensic evidence.")
@@ -55,6 +56,7 @@ def main() -> int:
     options = AnalysisOptions(
         live=args.live,
         mode=mode,
+        timeout=args.timeout,
         tenderly_account=args.tenderly_account,
         tenderly_project=args.tenderly_project,
         tenderly_access_key=args.tenderly_access_key,

@@ -12,6 +12,7 @@ from .adapters import (
     SourcifyOpenChainResolver,
     TenderlySimulationAdapter,
 )
+from .adapters.http import HttpClient
 from .decode import decode_calldata
 from .contract_bytecode_scanner import scan_contract_bytecode
 from .token_metadata import TokenMetadataResolver
@@ -51,12 +52,14 @@ class EvidenceOrchestrator:
         self.threat_adapter = threat_adapter
         self.token_metadata_provider = token_metadata_provider
         if self.mode != "offline":
-            self.calldata_resolver = self.calldata_resolver or CombinedCalldataResolver([SourcifyOpenChainResolver(), FourByteDirectoryResolver()])
-            self.simulation_adapter = self.simulation_adapter or TenderlySimulationAdapter(options.tenderly_account, options.tenderly_project, options.tenderly_access_key)
-            self.contract_adapter = self.contract_adapter or CompositeContractReputationAdapter(options.etherscan_api_key, options.blockscout_base_url)
-            self.threat_adapter = self.threat_adapter or CompositeThreatIntelAdapter(options.goplus_base_url, options.metamask_config_url)
+            client = HttpClient(timeout=options.timeout)
+            self.calldata_resolver = self.calldata_resolver or CombinedCalldataResolver([SourcifyOpenChainResolver(client=client), FourByteDirectoryResolver(client=client)])
+            self.simulation_adapter = self.simulation_adapter or TenderlySimulationAdapter(options.tenderly_account, options.tenderly_project, options.tenderly_access_key, client=client)
+            self.contract_adapter = self.contract_adapter or CompositeContractReputationAdapter(options.etherscan_api_key, options.blockscout_base_url, client=client)
+            self.threat_adapter = self.threat_adapter or CompositeThreatIntelAdapter(options.goplus_base_url, options.metamask_config_url, client=client)
         self.token_metadata_provider = self.token_metadata_provider or TokenMetadataResolver(
             options.rpc_url,
+            client=HttpClient(timeout=options.timeout),
             public_fallback=self.mode != "offline" and options.public_rpc_fallback,
         )
 

@@ -4,6 +4,9 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 
+DEFAULT_REQUEST_TIMEOUT = 30.0
+
+
 @dataclass(frozen=True)
 class ChainRef:
     supported: bool
@@ -17,7 +20,7 @@ class ChainRef:
 class AnalysisOptions:
     live: bool = False
     mode: str | None = None
-    timeout: float = 8.0
+    timeout: float = DEFAULT_REQUEST_TIMEOUT
     tenderly_account: str | None = None
     tenderly_project: str | None = None
     tenderly_access_key: str | None = None
