@@ -77,6 +77,14 @@ Check live integration health without writing credentials to disk:
 ETHERSCAN_API_KEY=... uv run python skills/signshield-risk/scripts/check_integrations.py
 ```
 
+Tenderly smoke check with local `.env`:
+
+```bash
+source .env
+python skills/signshield-risk/scripts/check_integrations.py
+python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx/<file>.json --live
+```
+
 Subagent dry-run context:
 
 ```bash
