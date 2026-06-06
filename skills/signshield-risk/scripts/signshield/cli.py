@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 
 from .analyzer import analyze_transaction
+from .compact import compact_report
+from .llm_summary import apply_llm_summary
 from .token_metadata import TokenMetadataResolver
 from .types import AnalysisOptions
 
@@ -44,6 +46,8 @@ def main() -> int:
     parser.add_argument("--metamask-config-url", default=os.getenv("METAMASK_CONFIG_URL", "https://raw.githubusercontent.com/MetaMask/eth-phishing-detect/main/src/config.json"))
     parser.add_argument("--subagent", choices=["off", "dry-run", "live"], default=os.getenv("SIGNSSHIELD_SUBAGENT_MODE", "off"))
     parser.add_argument("--subagent-command", default=os.getenv("SIGNSSHIELD_SUBAGENT_COMMAND"))
+    parser.add_argument("--output-format", choices=["compact", "full"], default="compact", help="Output compact user JSON by default; use full for forensic evidence.")
+    parser.add_argument("--summary-llm", choices=["off", "live"], default="live", help="Apply final LLM summary to compact output. Full output never calls this layer.")
     parser.add_argument("--allow-fixture-risk", action="store_true", help="Allow local fixture labels to create high-confidence risk factors outside offline mode.")
     args = parser.parse_args()
     mode = args.mode or ("live-best-effort" if args.live else "offline")
@@ -72,5 +76,8 @@ def main() -> int:
     for source in files:
         payload = json.loads(source.read_text(encoding="utf-8"))
         result = analyze_transaction(payload, str(source), options=options, token_metadata_provider=token_metadata_provider)
+        if args.output_format == "compact":
+            result = compact_report(result)
+            result = apply_llm_summary(result, mode=args.summary_llm)
         write_result(result, args.output, source)
     return 0
