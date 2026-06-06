@@ -73,19 +73,18 @@ class KimiAgentLoopClient:
 
         async def collect() -> str:
             texts: list[str] = []
-            with isolated_kimi_provider_env(enabled=config is not None):
-                async for message in prompt(
-                    prompt_text,
-                    config=config,
-                    agent_file=self.agent_file,
-                    yolo=True,
-                    model=model,
-                    max_steps_per_turn=options.agent_loop_max_steps,
-                    final_message_only=True,
-                ):
-                    text = message.extract_text()
-                    if text:
-                        texts.append(text)
+            async for message in prompt(
+                prompt_text,
+                config=config,
+                agent_file=self.agent_file,
+                yolo=True,
+                model=model,
+                max_steps_per_turn=options.agent_loop_max_steps,
+                final_message_only=True,
+            ):
+                text = message.extract_text()
+                if text:
+                    texts.append(text)
             return "".join(texts)
 
         timeout = max(float(options.agent_loop_timeout or 0), 1.0)
