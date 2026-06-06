@@ -14,7 +14,7 @@ const txRiskEndpoints = {
   local: {
     label: 'Local dev',
     url: 'http://localhost:8000/tx-scan',
-    apiKey: null,
+    apiKey: 'test-key',
   },
   prod: {
     label: 'Remote prod',

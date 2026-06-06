@@ -167,6 +167,35 @@ source .env
 uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx/2026-06-03T00-18-00-000Z-erc20-high-sell-tax-token.json --subagent live --subagent-command "uv run python skills/signshield-risk/scripts/openai_subagent.py"
 ```
 
+Kimi Agent SDK loop:
+
+```bash
+export KIMI_API_KEY=...
+export KIMI_BASE_URL=https://api.kimi.com/coding/v1
+export SIGNSSHIELD_AGENT_LOOP_MODEL=kimi-code/kimi-for-coding
+uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx/<file>.json --agent-loop kimi --output-format full
+```
+
+The Kimi loop is opt-in. It prompts a Kimi agent to first call the read-only
+`CollectEvmPrimitives` tool, which exposes normalized wallet input, decoded
+calldata, simulation, contract reputation, threat intelligence, ERC20 token
+risk profile, provider health, evidence quality, and deterministic candidate
+risk signals. The agent can then call Kimi Agent SDK's built-in read-only
+`SearchWeb` and `FetchURL` tools, plus project read-only direct-check tools:
+`InspectEvmAddress`,
+`ReadErc20Metadata`, `InspectContractReputation`, `InspectThreatIntel`, and
+`SimulateEvmTransaction`. The agent must return the same
+`signshield-risk/v0.2` JSON report shape plus a short user-safe
+`reasoningTrace` for UI display. Invalid agent output falls back to
+deterministic analysis by default and records the failure under
+`evidence.agentLoop`.
+
+Kimi Code uses the OpenAI-compatible provider endpoint
+`https://api.kimi.com/coding/v1` with provider model id `kimi-for-coding`.
+The Agent SDK model key is `kimi-code/kimi-for-coding`; leave
+`KIMI_MODEL_NAME` unset unless you need to override the provider's internal
+model id.
+
 `.env` is gitignored. Do not commit local API keys or provider tokens.
 
 ## Live Adapters
@@ -192,6 +221,10 @@ export SIGNSSHIELD_RPC_URL=...
 export SIGNSSHIELD_SUBAGENT_COMMAND=...
 export SIGNSSHIELD_OPENAI_MODEL=gpt-5.5
 export SIGNSSHIELD_OPENAI_REASONING_EFFORT=medium
+export SIGNSSHIELD_AGENT_LOOP=off
+export SIGNSSHIELD_AGENT_LOOP_MODEL=kimi-code/kimi-for-coding
+export KIMI_API_KEY=...
+export KIMI_BASE_URL=https://api.kimi.com/coding/v1
 ```
 
 HTTP service environment variables:
@@ -202,6 +235,8 @@ export SIGNSSHIELD_HTTP_MODE=production
 export SIGNSSHIELD_PUBLIC_RPC_FALLBACK=true
 export SIGNSSHIELD_CORS_ORIGINS=*
 export SIGNSSHIELD_TIMEOUT=30
+export SIGNSSHIELD_AGENT_LOOP=off
+export SIGNSSHIELD_AGENT_LOOP_FALLBACK=true
 ```
 
 Missing credentials are reported in `evidence.limitations`; they do not abort analysis.
