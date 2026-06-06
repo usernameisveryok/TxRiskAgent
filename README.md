@@ -59,6 +59,18 @@ Production-style defense mode:
 ETHERSCAN_API_KEY=... uv run python skills/signshield-risk/scripts/analyze_evm_tx.py dump-tx --mode production --output output/risk-reports-production
 ```
 
+HTTP service:
+
+```bash
+uv run uvicorn signshield.http_service:app --app-dir skills/signshield-risk/scripts --host localhost --port 8000
+```
+
+Scan one transaction over HTTP:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://localhost:8000/tx-scan -ContentType application/json -Body (Get-Content dump-tx/2026-06-02T11-14-54-807Z-20571aef-0d9a-489d-b3e1-3b4aaf982fbd.json -Raw)
+```
+
 Check bundled public EVM RPC endpoints:
 
 ```bash
@@ -132,6 +144,14 @@ export SIGNSSHIELD_OPENAI_MODEL=gpt-5.5
 export SIGNSSHIELD_OPENAI_REASONING_EFFORT=medium
 ```
 
+HTTP service environment variables:
+
+```bash
+export SIGNSSHIELD_HTTP_MODE=production
+export SIGNSSHIELD_PUBLIC_RPC_FALLBACK=true
+export SIGNSSHIELD_CORS_ORIGINS=*
+```
+
 Missing credentials are reported in `evidence.limitations`; they do not abort analysis.
 Reports also include `evidence.providerHealth` and `evidence.evidenceQuality` so operators can tell which live sources participated in the decision. Runtime modes are:
 
@@ -144,6 +164,43 @@ When `--live` is enabled, `SIGNSSHIELD_RPC_URL` or `--rpc-url` takes precedence.
 Etherscan keys must be supplied through `ETHERSCAN_API_KEY` or `--etherscan-api-key`; never commit them. The adapter records structured source, ABI, proxy, deployment, account, token-transfer, and provider-limitation facts under `evidence.contractReputation.etherscan` without storing full source code.
 
 Subagent live mode uses `SIGNSSHIELD_SUBAGENT_COMMAND`. The command reads context JSON from stdin and writes assessment JSON to stdout.
+
+## HTTP API
+
+`POST /tx-scan` accepts the same JSON shape as `dump-tx/*.json`, either `chainId` plus `transaction` or a flat transaction-like object. Successful responses return the full `signshield-risk/v0.2` report directly, with an `X-Request-Id` response header and `inputRef` set to `http:tx-scan:<requestId>`.
+
+`GET /health` returns service status, schema version, and the configured mode. By default the service starts in `production` mode with live adapters enabled and local fixture risk disabled. Missing provider credentials are reported inside the risk report instead of failing the request.
+
+## MetaMask Snap Demo
+
+The local Snap demo lives in:
+
+```text
+apps/snap/
+```
+
+Start the TxRiskAgent HTTP service first:
+
+```bash
+uv run uvicorn signshield.http_service:app --app-dir skills/signshield-risk/scripts --host localhost --port 8000
+```
+
+Then run the Snap demo:
+
+```bash
+cd apps/snap
+npm install
+npm run build
+npm run start
+```
+
+Local demo ports:
+
+- TxRiskAgent API: `http://localhost:8000/tx-scan`
+- Snap server: `http://localhost:8080`
+- Demo site: `http://127.0.0.1:5173`
+
+The Snap uses MetaMask transaction insight permissions to POST `{chainId, transactionOrigin, transaction}` to `/tx-scan` before signing. It renders `signshield-risk/v0.2` verdicts, summaries, recommendations, and the top risk factors inside MetaMask. The browser demo also previews the same `/tx-scan` response fields in its output panel before submitting a transaction.
 
 ## Validate
 
