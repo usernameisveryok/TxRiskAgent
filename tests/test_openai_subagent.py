@@ -48,6 +48,46 @@ def test_openai_subagent_accepts_structured_result_from_fake_client() -> None:
     assert result["assessments"][0]["id"] == "source_semantic_privilege_review"
     assert fake.responses.calls[0]["model"] == "gpt-5.5"
     assert fake.responses.calls[0]["reasoning"] == {"effort": "medium"}
+    recommended = fake.responses.calls[0]["text"]["format"]["schema"]["properties"]["assessments"]["items"]["properties"]["recommendedRiskFactors"]
+    recommended_props = recommended["items"]["properties"]
+    assert "evidenceSummary" in recommended_props
+    assert "evidence" not in recommended_props
+
+
+def test_recommended_factor_evidence_summary_is_normalized() -> None:
+    result = parse_subagent_response(
+        {
+            "status": "ok",
+            "assessments": [
+                {
+                    "id": "unknown_or_multicall_intent_review",
+                    "conclusion": "Selector remains opaque.",
+                    "severity": "MEDIUM",
+                    "confidence": "MEDIUM",
+                    "evidenceRefs": ["deterministicRiskFactors.0"],
+                    "recommendedRiskFactors": [
+                        {
+                            "id": "subagent_unknown_selector_review",
+                            "domain": "uncertainty",
+                            "severity": "MEDIUM",
+                            "score": 10,
+                            "title": "Subagent reviewed unknown selector",
+                            "description": "No additional trusted evidence explains the selector.",
+                            "evidenceSummary": "Based on deterministicRiskFactors.0.",
+                        }
+                    ],
+                }
+            ],
+            "limitations": [],
+        }
+    )
+
+    factor = result["assessments"][0]["recommendedRiskFactors"][0]
+    assert factor["evidence"] == {
+        "assessmentId": "unknown_or_multicall_intent_review",
+        "summary": "Based on deterministicRiskFactors.0.",
+    }
+    assert "evidenceSummary" not in factor
 
 
 def test_openai_subagent_missing_api_key_returns_structured_error(monkeypatch) -> None:

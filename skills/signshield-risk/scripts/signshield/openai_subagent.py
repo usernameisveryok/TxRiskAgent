@@ -40,9 +40,9 @@ SUBAGENT_RESPONSE_SCHEMA: dict[str, Any] = {
                                 "score": {"type": "integer", "minimum": 0, "maximum": 30},
                                 "title": {"type": "string"},
                                 "description": {"type": "string"},
-                                "evidence": {"type": "object", "additionalProperties": True},
+                                "evidenceSummary": {"type": "string"},
                             },
-                            "required": ["id", "domain", "severity", "score", "title", "description", "evidence"],
+                            "required": ["id", "domain", "severity", "score", "title", "description", "evidenceSummary"],
                         },
                     },
                 },
@@ -72,7 +72,7 @@ Focus on:
 5. unknown_or_multicall_intent_review
 
 Only perform tasks listed in context.tasks. Use evidenceRefs as dot paths into the supplied context, such as tokenProfile.tokenSecurity.taxMutable, contractReputation.etherscan.proxy, simulation.facts.0, deterministicRiskFactors.0, providerHealth.0, or verdictPreSubagent.evidenceGate.requiresLiveEvidence.
-Recommended risk factors are advisory. Do not recommend lowering risk or removing deterministic factors.
+Recommended risk factors are advisory. Do not recommend lowering risk or removing deterministic factors. Put any supporting evidence details in recommendedRiskFactors.evidenceSummary as a short string; do not return nested evidence objects.
 
 Return only the structured JSON object requested by the response schema."""
 

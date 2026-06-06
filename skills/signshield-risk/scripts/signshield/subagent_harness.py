@@ -74,14 +74,15 @@ def parse_subagent_response(value: Any) -> dict[str, Any]:
         confidence = item.get("confidence")
         if severity not in VALID_SEVERITY or confidence not in VALID_CONFIDENCE:
             continue
+        assessment_id = str(item.get("id") or "subagent_assessment")
         assessments.append(
             {
-                "id": str(item.get("id") or "subagent_assessment"),
+                "id": assessment_id,
                 "conclusion": str(item.get("conclusion") or ""),
                 "severity": severity,
                 "confidence": confidence,
                 "evidenceRefs": [str(ref) for ref in item.get("evidenceRefs", []) if ref],
-                "recommendedRiskFactors": item.get("recommendedRiskFactors", []) if isinstance(item.get("recommendedRiskFactors"), list) else [],
+                "recommendedRiskFactors": _normalize_recommended_factors(item.get("recommendedRiskFactors"), assessment_id),
             }
         )
     return {
@@ -109,3 +110,22 @@ def apply_subagent_recommended_factors(result: dict[str, Any], factors: list[dic
                 factor.get("evidence") if isinstance(factor.get("evidence"), dict) else {"assessmentId": assessment["id"]},
                 source_type="subagent",
             )
+
+
+def _normalize_recommended_factors(value: Any, assessment_id: str) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    factors = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        factor = dict(item)
+        if isinstance(factor.get("evidence"), dict):
+            factors.append(factor)
+            continue
+        evidence_summary = str(factor.pop("evidenceSummary", "") or "").strip()
+        factor["evidence"] = {"assessmentId": assessment_id}
+        if evidence_summary:
+            factor["evidence"]["summary"] = evidence_summary
+        factors.append(factor)
+    return factors
