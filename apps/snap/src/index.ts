@@ -12,10 +12,12 @@ const TX_RISK_ENDPOINTS = {
   },
   prod: {
     label: 'Remote prod',
-    url: 'https://txriskagent-production.up.railway.app/tx-scan',
-    apiKey: 'change-me',
+    url: 'http://43.137.17.169/tx-scan',
+    apiKey: 'test-key',
   },
 } as const;
+
+const TX_RISK_REQUEST_TIMEOUT_MS = 300_000;
 
 type TxRiskEndpointKey = keyof typeof TX_RISK_ENDPOINTS;
 
@@ -79,26 +81,42 @@ const scanTransactionRisk = async (payload: {
   transaction: unknown;
 }): Promise<TxRiskResponse> => {
   const endpoint = await getSelectedEndpoint();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TX_RISK_REQUEST_TIMEOUT_MS);
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
   };
 
-  if (endpoint.apiKey) {
-    headers['X-API-Key'] = endpoint.apiKey;
+  try {
+    if (endpoint.apiKey) {
+      headers['X-API-Key'] = endpoint.apiKey;
+    }
+
+    const response = await fetch(endpoint.url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`${endpoint.label} TX risk API returned ${response.status}.`);
+    }
+
+    return (await response.json()) as TxRiskResponse;
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(
+        `${endpoint.label} TX risk API timed out after ${Math.round(
+          TX_RISK_REQUEST_TIMEOUT_MS / 1000,
+        )} seconds.`,
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  const response = await fetch(endpoint.url, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    throw new Error(`${endpoint.label} TX risk API returned ${response.status}.`);
-  }
-
-  return (await response.json()) as TxRiskResponse;
 };
 
 export const onRpcRequest: OnRpcRequestHandler = async ({ origin, request }) => {

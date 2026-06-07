@@ -16,45 +16,89 @@
           TxRiskAgent risk results inside MetaMask before signing.
         </p>
 
-        <label class="field">
-          <span>TxRisk endpoint</span>
-          <select id="endpoint-select">
-            <option value="local">Local dev</option>
-            <option value="prod">Remote prod</option>
-          </select>
-        </label>
+        <div class="top-controls">
+          <button id="connect">Install TxRiskAgent</button>
 
-        <label class="field">
-          <span>Network</span>
-          <select id="network-select">
-            <option value="eth">ETH</option>
-            <option value="bnb">BNB</option>
-          </select>
-        </label>
+          <label class="field toolbar-field">
+            <span>TxRisk endpoint</span>
+            <select id="endpoint-select">
+              <option value="local">Local dev</option>
+              <option value="prod">Remote prod</option>
+            </select>
+          </label>
 
-        <div class="actions">
-          <button id="connect">Connect Snap</button>
-          <button id="claim-airdrop" disabled>
-            Claim LAB-USDC airdrop
-          </button>
-          <button id="send-normal" disabled>Transfer 0.1 Native Token to normal</button>
-          <button id="send-risky" disabled>Transfer 0.1 Native Token to dead</button>
-          <button id="approve-bsc-usdt" disabled>
-            On BSC Chain, approve 10 USDT for 0xfEAd9619e88464e5aD1Ea9Df458dcc147F03ea0C (Atalis Loan)
-          </button>
+          <div class="mode-toggle">
+            <button id="preview-mode" class="toggle-option preview-label" type="button">
+              Preview Risk
+            </button>
+            <input id="send-mode" type="checkbox" checked />
+            <button id="send-mode-button" class="toggle-option send-label" type="button">
+              Send transaction
+            </button>
+          </div>
         </div>
 
-        <div class="custom-send">
-          <input
-            id="custom-address"
-            type="text"
-            spellcheck="false"
-            placeholder="0x recipient address"
-          />
-          <button id="send-custom" disabled>Transfer 0.1 Native Token to this address</button>
-        </div>
+        <section class="transaction-group">
+          <h2>Native Token transfers</h2>
+          <div class="transaction-row native-row">
+            <label class="field network-field">
+              <span>Network</span>
+              <select id="network-select">
+                <option value="eth">ETH</option>
+                <option value="bnb">BNB</option>
+              </select>
+            </label>
 
-        <pre id="output">Waiting for MetaMask...</pre>
+            <label class="field address-field">
+              <span>Address</span>
+              <input
+                id="custom-address"
+                type="text"
+                list="native-recipient-options"
+                spellcheck="false"
+                placeholder="0x recipient address"
+              />
+              <datalist id="native-recipient-options">
+                <option value="0x1111111111111111111111111111111111111111" label="normal">normal</option>
+                <option value="0x000000000000000000000000000000000000dead" label="dead">dead</option>
+              </datalist>
+            </label>
+
+            <button id="send-custom">Transfer 0.1 Native Token</button>
+          </div>
+        </section>
+
+        <section class="transaction-group">
+          <h2>Smart contract calls</h2>
+          <div class="scenario-grid">
+            <button id="claim-airdrop" class="scenario-button harmful">
+              Claim LAB-USDC airdrop on ETH
+            </button>
+            <button id="approve-bsc-usdt" class="scenario-button harmful">
+              Approve 10 USDT for Atalis Loan on BSC
+            </button>
+            <button class="scenario-button benign" data-scenario="nft-revoke" type="button">
+              NFT approval revoke
+            </button>
+            <button class="scenario-button harmful" data-scenario="erc20-unlimited" type="button">
+              ERC20 unlimited approval
+            </button>
+            <button class="scenario-button harmful" data-scenario="nft-approve-all" type="button">
+              NFT approve all
+            </button>
+            <button class="scenario-button harmful" data-scenario="hidden-multicall" type="button">
+              Hidden multicall drain
+            </button>
+            <button class="scenario-button harmful" data-scenario="native-drainer" type="button">
+              Native transfer drainer
+            </button>
+          </div>
+        </section>
+
+        <div id="output-grid" class="output-grid">
+          <pre id="constructed-output">Waiting for transaction...</pre>
+          <pre id="scan-output">Waiting for TxRiskAgent output...</pre>
+        </div>
       </section>
     </main>
 

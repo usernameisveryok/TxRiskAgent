@@ -26,6 +26,7 @@ button {
   font: inherit;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 button:hover {
@@ -48,18 +49,22 @@ input {
   font: inherit;
 }
 
+input[type="checkbox"] {
+  width: auto;
+}
+
 .shell {
   display: grid;
   min-height: 100vh;
   place-items: center;
-  padding: 24px;
+  padding: 20px;
 }
 
 .panel {
-  width: min(640px, 100%);
+  width: min(1040px, 100%);
   border: 1px solid #d9e0e8;
   border-radius: 8px;
-  padding: 32px;
+  padding: 28px;
   background: #fff;
   box-shadow: 0 24px 70px rgb(23 33 43 / 10%);
 }
@@ -75,21 +80,29 @@ input {
 
 h1 {
   margin: 0;
-  font-size: clamp(32px, 7vw, 48px);
-  line-height: 1;
+  font-size: clamp(34px, 5vw, 56px);
+  line-height: 0.98;
+}
+
+h2 {
+  margin: 0 0 12px;
+  color: #17212b;
+  font-size: 18px;
+  line-height: 1.25;
 }
 
 .summary {
-  margin: 18px 0 24px;
+  max-width: 780px;
+  margin: 14px 0 18px;
   color: #52616f;
-  font-size: 17px;
-  line-height: 1.6;
+  font-size: 16px;
+  line-height: 1.5;
 }
 
 .field {
   display: grid;
   gap: 8px;
-  margin-bottom: 20px;
+  margin: 0;
 }
 
 .field span {
@@ -98,15 +111,143 @@ h1 {
   font-weight: 800;
 }
 
+.top-controls {
+  display: grid;
+  grid-template-columns: auto minmax(220px, 1fr) minmax(320px, 1.2fr);
+  gap: 12px;
+  align-items: end;
+  margin: 0 0 18px;
+}
+
+.toolbar-field {
+  min-width: 0;
+}
+
+.mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  border: 1px solid #d9e0e8;
+  border-radius: 8px;
+  padding: 8px;
+  background: #f8fafc;
+  color: #344351;
+  font-weight: 800;
+}
+
+.toggle-option {
+  min-width: 0;
+  border: 0;
+  border-radius: 6px;
+  padding: 12px 14px;
+  background: transparent;
+  color: #6b7a88;
+  font: inherit;
+  font-weight: 800;
+  text-align: center;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+  cursor: pointer;
+}
+
+.toggle-option:hover {
+  background: #edf2f7;
+}
+
+.mode-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.mode-toggle:has(input:not(:checked)) .preview-label,
+.mode-toggle:has(input:checked) .send-label {
+  background: #fff;
+  color: #17212b;
+  box-shadow: 0 1px 4px rgb(23 33 43 / 12%);
+}
+
+.mode-toggle:has(input:not(:checked)) .send-label,
+.mode-toggle:has(input:checked) .preview-label {
+  color: #6b7a88;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 0;
+}
+
+.transaction-group {
+  margin: 0 0 16px;
+  border-top: 1px solid #d9e0e8;
+  padding-top: 16px;
+}
+
+.transaction-row {
+  display: grid;
+  gap: 12px;
+  align-items: end;
+}
+
+.native-row {
+  grid-template-columns: 160px minmax(300px, 1fr) auto;
+}
+
+.network-field,
+.address-field {
+  min-width: 0;
+}
+
+.compact-actions {
+  gap: 10px;
+}
+
+.scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.scenario-button {
+  min-width: 0;
+  white-space: normal;
+  text-align: left;
+}
+
+.scenario-button.benign {
+  background: #037a6b;
+}
+
+.scenario-button.benign:hover {
+  background: #026457;
+}
+
+.scenario-button.harmful {
+  background: #b42318;
+}
+
+.scenario-button.harmful:hover {
+  background: #8f1d15;
+}
+
+.custom-send {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 12px;
+  align-items: stretch;
 }
 
 pre {
-  min-height: 160px;
+  min-height: 150px;
   margin: 0;
   overflow: auto;
   border: 1px solid #d9e0e8;
@@ -119,6 +260,16 @@ pre {
   white-space: pre-wrap;
 }
 
+.output-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.output-grid.send-mode {
+  grid-template-columns: 1fr;
+}
+
 @media (max-width: 520px) {
   .panel {
     padding: 24px;
@@ -126,5 +277,28 @@ pre {
 
   button {
     width: 100%;
+  }
+
+  .compact-field {
+    max-width: none;
+  }
+
+  .custom-send {
+    grid-template-columns: 1fr;
+  }
+
+  .output-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 820px) {
+  .top-controls,
+  .native-row {
+    grid-template-columns: 1fr;
+  }
+
+  .top-controls {
+    align-items: stretch;
   }
 }

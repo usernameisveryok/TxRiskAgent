@@ -1,14 +1,18 @@
 const snapId = 'local:http://localhost:8081';
-const output = document.querySelector('#output');
+const outputGrid = document.querySelector('#output-grid');
+const constructedOutput = document.querySelector('#constructed-output');
+const scanOutput = document.querySelector('#scan-output');
 const connectButton = document.querySelector('#connect');
 const claimAirdropButton = document.querySelector('#claim-airdrop');
-const sendNormalButton = document.querySelector('#send-normal');
-const sendRiskyButton = document.querySelector('#send-risky');
 const approveBscUsdtButton = document.querySelector('#approve-bsc-usdt');
 const sendCustomButton = document.querySelector('#send-custom');
 const customAddressInput = document.querySelector('#custom-address');
 const endpointSelect = document.querySelector('#endpoint-select');
 const networkSelect = document.querySelector('#network-select');
+const sendModeToggle = document.querySelector('#send-mode');
+const previewModeButton = document.querySelector('#preview-mode');
+const sendModeButton = document.querySelector('#send-mode-button');
+const scenarioButtons = document.querySelectorAll('[data-scenario]');
 
 const txRiskEndpoints = {
   local: {
@@ -18,12 +22,11 @@ const txRiskEndpoints = {
   },
   prod: {
     label: 'Remote prod',
-    url: 'https://txriskagent-production.up.railway.app/tx-scan',
-    apiKey: 'change-me',
+    url: 'http://43.137.17.169/tx-scan',
+    apiKey: 'test-key',
   },
 };
-const normalAddress = '0x1111111111111111111111111111111111111111';
-const riskyAddress = '0x000000000000000000000000000000000000dead';
+const txRiskRequestTimeoutMs = 300_000;
 const fakeAirdropTokenAddress = '0x1000000000000000000000000000000000000001';
 const fakeAirdropSpenderAddress = '0x3000000000000000000000000000000000000001';
 const pointOneNativeTokenInWeiHex = '0x16345785d8a0000';
@@ -59,9 +62,136 @@ const atalisLoanAddress = '0xfEAd9619e88464e5aD1Ea9Df458dcc147F03ea0C';
 const tenUsdtWith18DecimalsHex = '0x8ac7230489e80000';
 let snapConnected = false;
 
-const print = (value) => {
-  output.textContent =
+const representativeRequests = {
+  'nft-revoke': {
+    label: 'NFT approval revoke',
+    category: 'benign',
+    expected: 'setApprovalForAll(operator, false) should read as a low-risk revoke.',
+    payload: {
+      chainId: 'eip155:1',
+      transactionOrigin: 'https://wallet-revoke.invalid',
+      transaction: {
+        from: '0xb7c360aaa4c2b9f727ff934baa6ba300ccc0f284',
+        to: '0x2000000000000000000000000000000000000001',
+        data:
+          '0xa22cb46500000000000000000000000030000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000',
+        value: '0x0',
+        type: '0x2',
+        gas: '0x30d40',
+        maxFeePerGas: '0x8af56a60',
+        maxPriorityFeePerGas: '0x77359400',
+      },
+    },
+  },
+  'erc20-unlimited': {
+    label: 'ERC20 unlimited approval phishing',
+    category: 'harmful',
+    expected: 'approve(spender, uint256.max) to a synthetic drainer should be high risk.',
+    payload: {
+      chainId: 'eip155:1',
+      transactionOrigin: 'https://claim-rewards.invalid',
+      transaction: {
+        from: '0xb7c360aaa4c2b9f727ff934baa6ba300ccc0f284',
+        to: '0x1000000000000000000000000000000000000001',
+        data:
+          '0x095ea7b30000000000000000000000003000000000000000000000000000000000000001ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+        value: '0x0',
+        type: '0x2',
+        gas: '0x30d40',
+        maxFeePerGas: '0x8af56a60',
+        maxPriorityFeePerGas: '0x77359400',
+      },
+    },
+  },
+  'nft-approve-all': {
+    label: 'NFT approve all fake airdrop',
+    category: 'harmful',
+    expected: 'setApprovalForAll(operator, true) to a synthetic drainer should be high risk.',
+    payload: {
+      chainId: 'eip155:137',
+      transactionOrigin: 'https://polygon-nft-claim.invalid',
+      transaction: {
+        from: '0xb7c360aaa4c2b9f727ff934baa6ba300ccc0f284',
+        to: '0x2000000000000000000000000000000000000137',
+        data:
+          '0xa22cb46500000000000000000000000030000000000000000000000000000000000001370000000000000000000000000000000000000000000000000000000000000001',
+        value: '0x0',
+        type: '0x2',
+        gas: '0x30d40',
+        maxFeePerGas: '0x8af56a60',
+        maxPriorityFeePerGas: '0x77359400',
+      },
+    },
+  },
+  'hidden-multicall': {
+    label: 'Hidden multicall approval and transfer',
+    category: 'harmful',
+    expected: 'A multicall hiding unlimited approval and transfer should be high risk.',
+    payload: {
+      chainId: 'eip155:1',
+      transactionOrigin: 'https://bundle-claim.invalid',
+      transaction: {
+        from: '0xb7c360aaa4c2b9f727ff934baa6ba300ccc0f284',
+        to: '0x3000000000000000000000000000000000000001',
+        data:
+          '0xac9650d800000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000044095ea7b30000000000000000000000003000000000000000000000000000000000000001ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000044a9059cbb0000000000000000000000003000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000000',
+        value: '0x0',
+        type: '0x2',
+        gas: '0x30d40',
+        maxFeePerGas: '0x8af56a60',
+        maxPriorityFeePerGas: '0x77359400',
+      },
+    },
+  },
+  'native-drainer': {
+    label: 'Native transfer to synthetic drainer',
+    category: 'harmful',
+    expected: 'A native transfer to a synthetic drainer address should be high risk.',
+    payload: {
+      chainId: 'eip155:8453',
+      transactionOrigin: 'https://support-case.invalid',
+      transaction: {
+        from: '0xb7c360aaa4c2b9f727ff934baa6ba300ccc0f284',
+        to: '0x3000000000000000000000000000000000008453',
+        data: '0x',
+        value: '0x6f05b59d3b20000',
+        type: '0x2',
+        gas: '0x5208',
+        maxFeePerGas: '0x8af56a60',
+        maxPriorityFeePerGas: '0x77359400',
+      },
+    },
+  },
+};
+
+const isSendMode = () => sendModeToggle.checked;
+
+const formatOutput = (value) =>
+  typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+
+const printConstructed = (value) => {
+  constructedOutput.textContent = formatOutput(value);
+};
+
+const printScan = (value) => {
+  scanOutput.textContent =
     typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+};
+
+const print = (value) => {
+  if (isSendMode()) {
+    printConstructed(value);
+    return;
+  }
+  printScan(value);
+};
+
+const syncOutputMode = () => {
+  outputGrid.classList.toggle('send-mode', isSendMode());
+  scanOutput.hidden = isSendMode();
+  if (isSendMode() && constructedOutput.textContent === 'Waiting for transaction...') {
+    printConstructed('Send mode enabled. Construct a transaction to open MetaMask.');
+  }
 };
 
 const getProvider = () => {
@@ -112,28 +242,44 @@ const syncSnapEndpoint = async () => {
 
 const scanTransactionRisk = async (payload) => {
   const endpoint = getSelectedEndpoint();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), txRiskRequestTimeoutMs);
   const headers = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
   };
 
-  if (endpoint.apiKey) {
-    headers['X-API-Key'] = endpoint.apiKey;
+  try {
+    if (endpoint.apiKey) {
+      headers['X-API-Key'] = endpoint.apiKey;
+    }
+
+    const response = await fetch(endpoint.url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `${endpoint.label} TxRiskAgent API returned ${response.status}.`,
+      );
+    }
+
+    return response.json();
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error(
+        `${endpoint.label} TxRiskAgent API timed out after ${Math.round(
+          txRiskRequestTimeoutMs / 1000,
+        )} seconds.`,
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  const response = await fetch(endpoint.url, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `${endpoint.label} TxRiskAgent API returned ${response.status}.`,
-    );
-  }
-
-  return response.json();
 };
 
 const selectRiskReportFields = (risk) => ({
@@ -151,16 +297,21 @@ const selectRiskReportFields = (risk) => ({
 const previewRiskReport = async (payload, context = {}) => {
   const endpoint = getSelectedEndpoint();
 
-  print({
+  printConstructed({
+    status: 'Constructed transaction',
+    mode: 'simulate',
+    ...context,
+    request: payload,
+  });
+  printScan({
     status: `Scanning transaction with TxRiskAgent (${endpoint.label})...`,
     endpoint: endpoint.url,
     ...context,
-    request: payload,
   });
 
   const risk = await scanTransactionRisk(payload);
 
-  print({
+  printScan({
     status: `TxRiskAgent API response (${endpoint.label})`,
     endpoint: endpoint.url,
     ...context,
@@ -170,10 +321,48 @@ const previewRiskReport = async (payload, context = {}) => {
   return risk;
 };
 
+const handleTransactionFlow = async (
+  provider,
+  transaction,
+  context = {},
+  submittedStatus = 'Transaction submitted',
+) => {
+  const payload = {
+    chainId: await getCurrentCaip2ChainId(provider),
+    transactionOrigin: context.transactionOrigin ?? window.location.origin,
+    transaction,
+  };
+  const displayContext = { ...context };
+  delete displayContext.transactionOrigin;
+
+  if (!isSendMode()) {
+    return previewRiskReport(payload, displayContext);
+  }
+
+  printConstructed({
+    status: 'Constructed transaction',
+    mode: 'send',
+    ...displayContext,
+    request: payload,
+  });
+
+  const txHash = await provider.request({
+    method: 'eth_sendTransaction',
+    params: [transaction],
+  });
+
+  printConstructed({
+    status: submittedStatus,
+    txHash,
+    ...displayContext,
+    request: payload,
+  });
+
+  return null;
+};
+
 const enableDemoActions = () => {
   claimAirdropButton.disabled = false;
-  sendNormalButton.disabled = false;
-  sendRiskyButton.disabled = false;
   approveBscUsdtButton.disabled = false;
   sendCustomButton.disabled = false;
 };
@@ -252,26 +441,10 @@ const sendTransaction = async (to) => {
     to,
     value: pointOneNativeTokenInWeiHex,
   };
-  const risk = await previewRiskReport({
-    chainId: await getCurrentCaip2ChainId(provider),
-    transactionOrigin: window.location.origin,
-    transaction,
-  }, {
+  await handleTransactionFlow(provider, transaction, {
     network: network.label,
     asset: network.nativeSymbol,
-  });
-
-  const txHash = await provider.request({
-    method: 'eth_sendTransaction',
-    params: [transaction],
-  });
-
-  print({
-    status: `Transaction submitted on ${network.label}`,
-    txHash,
-    network: network.label,
-    response: selectRiskReportFields(risk),
-  });
+  }, `Transaction submitted on ${network.label}`);
 };
 
 const padAddressForCalldata = (address) => address.slice(2).padStart(64, '0');
@@ -302,37 +475,11 @@ const claimFakeAirdrop = async () => {
     value: '0x0',
     data: buildApproveCalldata(fakeAirdropSpenderAddress, uint256MaxHex),
   };
-  const risk = await previewRiskReport({
-    chainId: await getCurrentCaip2ChainId(provider),
-    transactionOrigin: `${window.location.origin}/claim-lab-usdc`,
-    transaction,
-  }, {
+  await handleTransactionFlow(provider, transaction, {
+    transactionOrigin: window.location.origin,
     network: nativeNetworks.eth.label,
     scenario: 'Fake LAB-USDC airdrop claim',
-  });
-  const shouldOpenWallet = window.confirm(
-    'Open MetaMask to view the Snap insight for this fake airdrop claim? Reject the transaction in MetaMask.',
-  );
-
-  if (!shouldOpenWallet) {
-    print({
-      status: 'Wallet prompt skipped',
-      response: selectRiskReportFields(risk),
-    });
-
-    return;
-  }
-
-  const txHash = await provider.request({
-    method: 'eth_sendTransaction',
-    params: [transaction],
-  });
-
-  print({
-    status: 'Airdrop claim transaction submitted',
-    txHash,
-    response: selectRiskReportFields(risk),
-  });
+  }, 'Airdrop claim transaction submitted');
 };
 
 const switchToNetwork = async (network) => {
@@ -382,43 +529,12 @@ const approveBscUsdt = async () => {
     value: '0x0',
     data: buildApproveCalldata(atalisLoanAddress, tenUsdtWith18DecimalsHex),
   };
-  const risk = await previewRiskReport({
-    chainId: await getCurrentCaip2ChainId(provider),
-    transactionOrigin: window.location.origin,
-    transaction,
-  });
-
-  const txHash = await provider.request({
-    method: 'eth_sendTransaction',
-    params: [transaction],
-  });
-
-  print({
-    status: 'Transaction submitted',
-    txHash,
-    response: selectRiskReportFields(risk),
-  });
+  await handleTransactionFlow(provider, transaction, {}, 'Transaction submitted');
 };
 
 connectButton.addEventListener('click', async () => {
   try {
     await requestSnaps();
-  } catch (error) {
-    print(error.message);
-  }
-});
-
-sendNormalButton.addEventListener('click', async () => {
-  try {
-    await sendTransaction(normalAddress);
-  } catch (error) {
-    print(error.message);
-  }
-});
-
-sendRiskyButton.addEventListener('click', async () => {
-  try {
-    await sendTransaction(riskyAddress);
   } catch (error) {
     print(error.message);
   }
@@ -438,6 +554,27 @@ approveBscUsdtButton.addEventListener('click', async () => {
   } catch (error) {
     print(error.message);
   }
+});
+
+scenarioButtons.forEach((button) => {
+  button.addEventListener('click', async () => {
+    try {
+      const request = representativeRequests[button.dataset.scenario];
+
+      if (!request) {
+        throw new Error('Unknown representative request.');
+      }
+
+      await previewRiskReport(JSON.parse(JSON.stringify(request.payload)), {
+        scenario: request.label,
+        category: request.category,
+        expected: request.expected,
+        mode: 'request preview',
+      });
+    } catch (error) {
+      print(error.message);
+    }
+  });
 });
 
 endpointSelect.addEventListener('change', async () => {
@@ -463,6 +600,26 @@ endpointSelect.addEventListener('change', async () => {
   }
 });
 
+sendModeToggle.addEventListener('change', () => {
+  syncOutputMode();
+  if (isSendMode()) {
+    printConstructed('Send mode enabled. The page will open MetaMask directly without a pre-scan.');
+    return;
+  }
+  printConstructed('Preview Risk enabled. Constructed transactions will appear here.');
+  printScan('TxRiskAgent output will appear here.');
+});
+
+previewModeButton.addEventListener('click', () => {
+  sendModeToggle.checked = false;
+  sendModeToggle.dispatchEvent(new Event('change'));
+});
+
+sendModeButton.addEventListener('click', () => {
+  sendModeToggle.checked = true;
+  sendModeToggle.dispatchEvent(new Event('change'));
+});
+
 sendCustomButton.addEventListener('click', async () => {
   try {
     const to = customAddressInput.value.trim();
@@ -478,8 +635,9 @@ sendCustomButton.addEventListener('click', async () => {
 });
 
 try {
+  syncOutputMode();
   getProvider();
-  print('MetaMask detected. Select a TxRisk endpoint, then connect the local Snap to begin.');
+  printScan('MetaMask detected. Select a TxRisk endpoint, then choose a transaction.');
 } catch (error) {
-  print(error.message);
+  printScan(error.message);
 }
