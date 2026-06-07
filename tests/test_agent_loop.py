@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -43,6 +44,14 @@ class FakeAgentLoopClient:
 class RaisingAgentLoopClient:
     def run(self, prompt_text: str, *, options: AnalysisOptions) -> str:
         raise AgentLoopError("provider unavailable")
+
+
+class FakeKimiMessage:
+    def __init__(self, text: str) -> None:
+        self.text = text
+
+    def extract_text(self) -> str:
+        return self.text
 
 
 def valid_agent_report(input_ref: str = "<memory>") -> dict:
@@ -160,6 +169,36 @@ def test_agent_loop_provider_error_falls_back_to_deterministic_report() -> None:
     assert result["evidence"]["agentLoop"]["error"] == "provider unavailable"
 
 
+def test_agent_loop_failure_records_redacted_diagnostics(monkeypatch) -> None:
+    monkeypatch.setenv("KIMI_API_KEY", "secret-test-key")
+    monkeypatch.setenv("KIMI_BASE_URL", "https://api.kimi.com/coding/v1")
+    monkeypatch.setenv("KIMI_MODEL_NAME", "kimi-for-coding")
+    monkeypatch.setenv("SIGNSSHIELD_AGENT_LOOP_MODEL", KIMI_CODE_MODEL_KEY)
+
+    result = analyze_transaction(
+        load_dump("2026-06-02T09-47"),
+        options=AnalysisOptions(mode="offline", agent_loop="kimi"),
+        agent_loop_client=RaisingAgentLoopClient(),
+    )
+
+    diagnostics = result["evidence"]["agentLoop"]["diagnostics"]
+    assert diagnostics["resolvedModel"] == KIMI_CODE_MODEL_KEY
+    assert diagnostics["env"]["KIMI_API_KEY"] == {
+        "present": True,
+        "empty": False,
+        "length": len("secret-test-key"),
+    }
+    assert diagnostics["env"]["KIMI_MODEL_NAME"] == "kimi-for-coding"
+    assert diagnostics["config"]["built"] is True
+    assert diagnostics["config"]["resolvedModelInConfig"] is True
+    assert diagnostics["config"]["providerApiKey"] == {
+        "present": True,
+        "empty": False,
+        "length": len("secret-test-key"),
+    }
+    assert "secret-test-key" not in json.dumps(diagnostics)
+
+
 def test_agent_loop_can_be_configured_to_raise_on_invalid_output() -> None:
     client = FakeAgentLoopClient({"bad": "shape"})
 
@@ -216,3 +255,38 @@ def test_isolated_kimi_provider_env_temporarily_removes_provider_overrides(monke
     assert os.environ["KIMI_API_KEY"] == "test-key"
     assert os.environ["KIMI_BASE_URL"] == "https://example.invalid"
     assert os.environ["KIMI_MODEL_NAME"] == "bad/model-key"
+
+
+def test_kimi_agent_loop_client_does_not_clear_kimi_env_during_prompt(monkeypatch) -> None:
+    from signshield.agent_loop import KimiAgentLoopClient
+
+    monkeypatch.setenv("KIMI_API_KEY", "test-key")
+    monkeypatch.setenv("KIMI_BASE_URL", KIMI_CODE_BASE_URL)
+    monkeypatch.setenv("KIMI_MODEL_NAME", KIMI_CODE_PROVIDER_MODEL)
+    monkeypatch.setenv("SIGNSSHIELD_AGENT_LOOP_MODEL", KIMI_CODE_MODEL_KEY)
+
+    observed_env: dict[str, str | None] = {}
+    observed_call: dict[str, Any] = {}
+
+    async def fake_prompt(*args: Any, **kwargs: Any):
+        observed_call.update(kwargs)
+        observed_env["KIMI_API_KEY"] = os.getenv("KIMI_API_KEY")
+        observed_env["KIMI_BASE_URL"] = os.getenv("KIMI_BASE_URL")
+        observed_env["KIMI_MODEL_NAME"] = os.getenv("KIMI_MODEL_NAME")
+        yield FakeKimiMessage(json.dumps(valid_agent_report("agent-ref")))
+
+    monkeypatch.setattr("kimi_agent_sdk.prompt", fake_prompt)
+
+    raw = KimiAgentLoopClient().run(
+        "test prompt",
+        options=AnalysisOptions(agent_loop="kimi", agent_loop_model=KIMI_CODE_MODEL_KEY),
+    )
+
+    assert json.loads(raw)["inputRef"] == "agent-ref"
+    assert observed_env == {
+        "KIMI_API_KEY": "test-key",
+        "KIMI_BASE_URL": KIMI_CODE_BASE_URL,
+        "KIMI_MODEL_NAME": KIMI_CODE_PROVIDER_MODEL,
+    }
+    assert observed_call["config"] is not None
+    assert observed_call["model"] == KIMI_CODE_MODEL_KEY
